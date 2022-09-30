@@ -39,11 +39,19 @@ class Rule:
 
     def preCheking(packet):
         pass
+
+    def indexingRules(regex):
+        fullruleStr = ""
+        with open("rules\\snort3-community.rules", "r") as file:
+            ruleFile=file.read()
+            return re.findall("{} \w+".format(regex),ruleFile)
+            
     def checkRules(self, payload):
         #format the data to match the rule
         detail = "{} {} {} -> {} {} ".format(
             self.protocol, self.src_ip, self.src_port, self.dst_ip, self.dst_port
         )
+        Logging.logInfo(detail)
         # try:
         with open("rules\\snort3-community.rules", "r") as file:
             ruleFile = file.readlines()
@@ -95,6 +103,7 @@ class Rule:
                         elif(item == "$HTTP_PORTS"):
                             splitItem[i]=self.HTTP_PORT
                 newRule=" ".join(splitItem)
+                
                 if re.search(detail,newRule):
                     # Get the rule, remove execessive quote
                     print(rule)
@@ -118,48 +127,63 @@ class Rule:
                         current = item.split(":")
                         ruleDict.update({current[0]: str(current[1]).strip('"')})
                         if current[0]=="content":
-                            contentCount+=1
+                            contentCount = contentCount +1
                         elif contentCount >  1 and current[0]=="content":
                             ruleDict.update({"{}-{}".format(current[0],contentCount): str(current[1]).strip('"')})
                     else:
                         ruleDict.update({item: item})
         
-            print(ruleDict)
+            if "content-2" in ruleDict:
+                print(ruleDict)
             return ruleDict
 
     def checkPayloadContent(self, ruleDict, payload):
         # print(payload)
+        regex = ""
+        regOpt= False
         if payload is not None:
             # pLen = len(payload)
-            # converted_payload=binascii.hexlify(bytes(payload)," ").upper()
             if "content" in ruleDict:
+                modPayload = payload
                 c=ruleDict.get("content")
-                content = c.strip('"').replace('"', "").replace("|"," ")
+                content = c.strip('"').replace('"', "")
                 splitObj = content.split(",")
                 content=splitObj[0]
                 for ob in splitObj:
-                    print(ob)
                     if "nocase" in ob:
-                        # nocase=True
-                        # contentRule =str(contentRule).upper()
-                        # payload =str(payload).upper()
-                        pass
+                        content=str(content).lower()
+                        payload=str(payload).lower()
                     if "depth" in ob:
-                        depth=int(ob.split(" ")[1])
-                        payload=str(payload[:depth])
-                    if "distance" in splitObj:
-                        distance=int(ob.split(" ")[1])
-                        payload=str(payload[distance:])
-                    if "offset" in splitObj:
-                        offset=int(ob.split(" ")[1])
-                        payload=str(payload[offset:])
+                        depth=re.findall('\d+',ob)
+                        modPayload=payload[:int(depth[0])]
+                    if "offset" in ob:
+                        offset=re.findall('\d+',ob)
+                        modPayload=payload[int(offset[0]):]
+            if "pcre" in ruleDict:
+                regex = ruleDict.get("pcre")
+                regOpt=True
 
             # If match with signature Alert
-                if "[" in content:
-                    content=str(content).replace("[","\[")
-                else:
-                    content=content.strip()
-                if re.search(re.escape(content), payload):
-                    Alert(
-                        ruleDict.get("classtype"), ruleDict.get("msg")
-                    ).generateDesktopNotification()
+                # if re.search(r"[!@)(#?$%^&*.]",content):
+                #     content=re.escape(content)
+                #     payload=re.escape(content)
+                #     print(content)
+                # else:
+                #     content=content.strip()
+                if len(content) >2:
+                    decodeContent=str(binascii.hexlify(bytes(content,"utf8")),"utf8").upper().replace(" ","")
+                    converted_payload=binascii.hexlify(bytes(payload,"utf8"))
+                    decodePayload=str(converted_payload,"utf8").upper()
+                    if decodeContent in decodePayload:
+                        Alert(
+                            ruleDict.get("classtype"), ruleDict.get("msg")
+                        ).generateDesktopNotification()
+                    if regOpt:
+                        if re.search(r"[!@)(#?$%^&*.]",content):
+                            content=re.escape(regex)
+                            payload=re.escape(payload)
+
+                            if re.search(regex,payload):
+                                Alert(
+                                    ruleDict.get("classtype"), ruleDict.get("msg")
+                                ).generateDesktopNotification()
