@@ -7,6 +7,7 @@ import scapy.all as scapy
 from Logging import *
 from Alert import Alert
 import re
+import string
 import binascii
 
 
@@ -137,53 +138,80 @@ class Rule:
                 print(ruleDict)
             return ruleDict
 
+    def checkHex(hexString):
+        for h in hexString:
+            if h not in string.hexdigits:
+                return False
+        return True
+
     def checkPayloadContent(self, ruleDict, payload):
-        # print(payload)
         regex = ""
-        regOpt= False
+        oricont=""
+        modPayload=""
+        nocase=False
         if payload is not None:
-            # pLen = len(payload)
             if "content" in ruleDict:
                 modPayload = payload
                 c=ruleDict.get("content")
                 content = c.strip('"').replace('"', "")
                 splitObj = content.split(",")
                 content=splitObj[0]
+                oricont=content
                 for ob in splitObj:
                     if "nocase" in ob:
-                        content=str(content).lower()
-                        payload=str(payload).lower()
+                        nocase=True
                     if "depth" in ob:
                         depth=re.findall('\d+',ob)
-                        modPayload=payload[:int(depth[0])]
+                        modPayload=payload[:32*int(depth[0])]
                     if "offset" in ob:
                         offset=re.findall('\d+',ob)
-                        modPayload=payload[int(offset[0]):]
-            if "pcre" in ruleDict:
-                regex = ruleDict.get("pcre")
-                regOpt=True
-
-            # If match with signature Alert
-                # if re.search(r"[!@)(#?$%^&*.]",content):
-                #     content=re.escape(content)
-                #     payload=re.escape(content)
-                #     print(content)
-                # else:
-                #     content=content.strip()
+                        modPayload=payload[4*int(offset[0]):]
                 if len(content) >2:
-                    decodeContent=str(binascii.hexlify(bytes(content,"utf8")),"utf8").upper().replace(" ","")
-                    converted_payload=binascii.hexlify(bytes(payload,"utf8"))
-                    decodePayload=str(converted_payload,"utf8").upper()
-                    if decodeContent in decodePayload:
+                    splitContent=content.split("|")
+                    decodeContent=""
+                    decodePayload=""
+                    # try decode for rule content with ascii
+                    try:
+                        for index,hex in enumerate(splitContent):
+                            if Rule.checkHex(hex.replace(" ","")) and re.search("[0-9a-fA-F][0-9a-fA-F]",hex):
+                                byteDecode=bytes.fromhex(hex)
+                                splitContent[index] =  byteDecode.decode("ASCII",errors="ignore")
+                            decodePayload=bytes.fromhex(modPayload).decode("ASCII",errors="ignore")
+                            decodeContent= "".join(splitContent)
+                        if nocase:
+                            decodeContent = decodeContent.lower()
+                            decodePayload = decodePayload.lower()
+                    except UnicodeDecodeError :
+                        Logging.logException("Unable to decode the payload via ASCII")
+                    except ValueError:
+                        pass
+                    # print(decodeContent)
+                    if re.search(r"[!@)(#?|$%^&\\*.]",decodeContent):
+                        decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"utf8")),"utf8").replace(" ","")
+                    else:
+                        decodeContent=str(binascii.hexlify(bytes(str(decodeContent),"utf8")),"utf8").replace(" ","")
+                    # converted_payload=binascii.hexlify(bytes(str(payload),"utf8"))
+                    decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"utf8")),"utf8").replace(" ","")
+                    if decodeContent in decodePayload and decodeContent != "":
                         Alert(
                             ruleDict.get("classtype"), ruleDict.get("msg")
                         ).generateDesktopNotification()
-                    if regOpt:
+                        Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
+                    if "pcre" in ruleDict:
+                        regex = ruleDict.get("pcre")
                         if re.search(r"[!@)(#?$%^&*.]",content):
                             content=re.escape(regex)
-                            payload=re.escape(payload)
-
-                            if re.search(regex,payload):
+                            payload=re.escape(modPayload)
+                            decodeMatchingPayload=str(binascii.hexlify(bytes(str(modPayload),"utf8")),"utf8").upper().replace(" ","")
+                            if re.search(content,decodeMatchingPayload):
                                 Alert(
                                     ruleDict.get("classtype"), ruleDict.get("msg")
                                 ).generateDesktopNotification()
+                                Logging.logInfo("payload :{} \n content {}".format(payload,content))
+
+    def checkBannedIP(src,dst):
+        with open("rules\\badIP.txt", "r") as file:
+            banIP = file.readlines()
+            for ip in banIP:
+                if src == ip or dst == ip:
+                    Alert("User prohibited traffic detected","Source : {} -> {} ".format(src,dst)).generateDesktopNotification()
