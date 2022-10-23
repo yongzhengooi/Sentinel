@@ -1,0 +1,2 @@
+[console_scripts]
+cicflowmeter = cicflowmeter.sniffer:main
