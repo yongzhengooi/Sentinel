@@ -4,8 +4,10 @@ from operator import contains, index
 from turtle import home
 from types import NoneType
 import scapy.all as scapy
-from Logging import *
-from Alert import Alert
+from lib.Logging import *
+from lib.Alert import Alert
+# from Logging import *
+# from Alert import Alert
 import re
 import string
 import binascii
@@ -133,9 +135,6 @@ class Rule:
                             ruleDict.update({current[0]: str(current[1]).strip('"')})
                     else:
                         ruleDict.update({item: item})
-        
-            if "content-1" in ruleDict:
-                print(ruleDict)
             return ruleDict
 
     def checkHex(hexString):
@@ -150,11 +149,10 @@ class Rule:
         nocase=False
         if payload is not None:
             multipleContentCheck = [False]
-            for i in range(1,4):
+            for i in range(1,6):
                 decodeContent=""
                 decodePayload=""
                 if "content-{}".format(i) in ruleDict:
-                    print("content-{}".format(i))
                     modPayload=payload
                     c=ruleDict.get("content-{}".format(i))
                     content = c.strip('"').replace('"', "")
@@ -171,7 +169,7 @@ class Rule:
                         for index,hex in enumerate(splitContent):
                             if Rule.checkHex(hex.replace(" ","")) and re.search("[0-9a-fA-F][0-9a-fA-F]",hex):
                                 byteDecode=bytes.fromhex(hex)
-                                splitContent[index] =  byteDecode.decode("ASCII",errors="ignore")
+                                splitContent[index] =  byteDecode.decode("ASCII")
                         decodePayload=bytes.fromhex(modPayload).decode("ASCII",errors="ignore")
                         decodeContent= "".join(splitContent)
                         if nocase:
@@ -229,15 +227,11 @@ class Rule:
                 # else:
                 #     decodeContent=str(binascii.hexlify(bytes(str(decodeContent),"ascii")),"ascii").replace(" ","")
                 # converted_payload=binascii.hexlify(bytes(str(payload),"utf8"))
-                decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"ascii")),"ascii").replace(" ","")
-                decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"ascii")),"ascii").replace(" ","")
-                print(decodeContent)
-                print(decodePayload)
+                decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"utf8")),"utf8").replace(" ","")
+                decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"utf8")),"utf8").replace(" ","")
+                # print(decodeContent)
+                # print(decodePayload)
                 if decodeContent in decodePayload and decodeContent != "":
-                    # Alert(
-                    #     ruleDict.get("classtype"), ruleDict.get("msg")
-                    # ).generateDesktopNotification()
-                    # Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
                     if i == 1:
                         multipleContentCheck[i-1]=True
                     else:
@@ -259,11 +253,11 @@ class Rule:
             if False in multipleContentCheck:
                 pass
             else:
-                multipleContentCheck.clear()
                 Alert(
                         ruleDict.get("classtype"), ruleDict.get("msg")
                     ).generateDesktopNotification()
                 Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
+                multipleContentCheck.clear()
 
     def getModifiedPayload(self,splitObj,payload):
         modPayload = payload

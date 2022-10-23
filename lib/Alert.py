@@ -1,12 +1,16 @@
 from multiprocessing import context
 import ssl
-import win10toast 
 import smtplib
 import os
-from Logging import *
+import platform
+from lib.Logging import *
 from email.message import EmailMessage
 from dotenv import load_dotenv
 _=load_dotenv("var.env")
+if platform.system() == "Windows":
+    import win10toast 
+elif platform.system() == "Linux":
+    import subprocess
 class Alert:
     def __init__(self,msg_title,msg_content):
         self.msg_title=msg_title

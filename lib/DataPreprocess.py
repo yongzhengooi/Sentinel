@@ -66,7 +66,7 @@ class Datapreprocess:
         featureScores.columns = ["Feature", "Score"]
         self.extractFeatureDf=x.iloc[:,feature.get_support(indices=True)]
         # print(self.extractFeatureDf)
-        print(featureScores.nlargest(top, "Score"))
+        # print(featureScores.nlargest(top, "Score"))
         return self.extractFeatureDf
        
 
