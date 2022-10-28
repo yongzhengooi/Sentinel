@@ -2,10 +2,13 @@ from ast import main
 from asyncio.subprocess import Process
 from ctypes import windll
 from distutils.command.build import build
-from multiprocessing import process
+from multiprocessing import current_process, process
 from multiprocessing.sharedctypes import Value
 from operator import indexOf
 import ipaddress
+import winreg as reg
+import lib.Export
+import numpy as np
 from os import scandir
 from signal import Signals
 from unittest.util import sorted_list_difference
@@ -13,16 +16,21 @@ from PyQt5.QtGui import *
 import threading
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from datetime import date, datetime
 import re
 import nest_asyncio
 from PyQt5.uic import loadUi
 from PyQt5.QtWebSockets import *
 from datetime import datetime
+from matplotlib.figure import Figure
 import asyncio
-
+import glob
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import threading
 from asyncqt import QEventLoop
 from scapy.all import *
+import matplotlib.pyplot as plt
 from scapy import *
 import matplotlib
 import pyshark
@@ -30,65 +38,151 @@ import multiprocessing
 from lib import *
 from lib.Alert import Alert
 from lib.Detection import Detection
+from lib.Learning import Learning
 from lib.Logging import Logging
 from lib.Rule import Rule
-from ui.design import Ui_MainWindow
-class Worker(QRunnable):
-    pass
-
+from lib.Export import Export
+from lib.DataPreprocess import Datapreprocess
+from ui.test import Ui_MainWindow
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 class IDS_Window(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.trigger=True
+
         #Variable init
         self.slicer_value=0
         self.Detection_range=0
         self.algoIndex=0
         self.boot=0
-        # loadUi("design.ui",self)
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
-        self.setWindowTitle("Sentinel")
-        self.trigger=True
         self.initConfiguration()
+
         # get data for listview
         self.collectedRule=[]
         self.emailList=[]
+        self.eventList=[]
         self.thread={}
-        #Startup the sniffer
+        self.loop=None
+
+        #variable for graph
+        self.benign =0
+        self.malicious=0
+        self.bruteForce=0
+        self.ddos=0
+        self.webBase=0
+        self.others=0
+        self.initGraphData()
+
         # Menu listView (Changing page)
         self.ui.stackedWidget.setCurrentIndex(0)
         self.ui.menu_listView.item(0).setSelected(True)
         self.ui.menu_listView.clicked.connect(self.change_page)
 
-        #Dashboard
-        self.ui.livePacket_textBrowser
+        #Dashboard attack type
+        self.attackLayout=QVBoxLayout(self.ui.attack_frame)
+        self.scene=QGraphicsScene()
+        self.attackType_graph=QGraphicsView(self.scene)
+        #init
+        self.attackTypeFigure,self.attackAX=plt.subplots(figsize=(7.8,4.5))
+        self.attackAX.set_title("Packets analysed from machine learning")
+        self.attackAX.set_ylabel("Detected packet")
+        self.attackAX.set_xlabel("Attack Type")
+        attacktype=["BruteForce","DDOS","Web based","Others"]
+        attackData=[self.bruteForce,self.ddos,self.webBase,self.others]
+        self.attackAX.bar(attacktype,attackData)
+        self.attackCanvas=FigureCanvas(self.attackTypeFigure)
+        self.proxy_widget = QGraphicsProxyWidget()
+        self.proxy_widget.setWidget(self.attackCanvas)
+        self.scene.addItem(self.proxy_widget)
+        self.attackLayout.addWidget(self.attackType_graph)
+        self.attackType_graph.show()
+
+        #Dashboard packet type
+        self.packetLayout=QVBoxLayout(self.ui.packetType_frame)
+        self.packetScene=QGraphicsScene()
+        self.packetType_graph=QGraphicsView(self.packetScene)
+        #init
+        self.packetTypeFigure,self.packetAX=plt.subplots(figsize=(7.8,3.85))
+        self.packetAX.set_title("Packets analysed from machine learning")
+        packettype=["Benign","Malicious"]
+        packetData=[self.benign,self.malicious]
+        self.packetAX.pie(packetData,labels=packettype,autopct='%1.0f%%')
+        self.packetCanvas=FigureCanvas(self.packetTypeFigure)
+        self.packetwidget = QGraphicsProxyWidget()
+        self.packetwidget.setWidget(self.packetCanvas)
+        self.packetScene.addItem(self.packetwidget)
+        self.packetLayout.addWidget(self.packetType_graph)
+        self.packetType_graph.show()
+        
+        #Event page
+        self.eventModel=QStandardItemModel()
+        self.eventModel.setHorizontalHeaderLabels(["Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
+        eventHeader = self.ui.eventTableView.horizontalHeader()
+        eventHeader.setSectionResizeMode(QHeaderView.Stretch)     
+        self.eventfilterModel=QSortFilterProxyModel()
+        self.eventfilterModel.setSourceModel(self.eventModel)
+        self.eventfilterModel.setFilterKeyColumn(-1)
+        self.ui.eventTableView.setModel(self.eventfilterModel)
+
 
         #Rule page
         self.model=QStandardItemModel()
-        self.ui.rules_listView.setModel(self.model)
+        self.model.setHorizontalHeaderLabels(["Type","Source IP","Port","Dst IP","Port"])
+        header = self.ui.rules_tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)     
+        self.filterModel=QSortFilterProxyModel()
+        self.filterModel.setSourceModel(self.model)
+        self.filterModel.setFilterKeyColumn(-1)
+        self.ui.rules_tableView.setModel(self.filterModel)
         self.ui.addRules_button.clicked.connect(self.addRule)
-        self.ui.searchRulesIP_editText.textChanged.connect(self.searchRule)
-        self.getData()
+        self.ui.searchRulesIP_editText.textChanged.connect(self.filterModel.setFilterRegExp)
+        self.ui.searchRulesPort_editText.textChanged.connect(self.filterModel.setFilterRegExp)
 
         #Setting page
-        #slicer
+            #slicer
         self.ui.detectionLevel_slicer.setMinimum(30)
         self.ui.detectionLevel_slicer.setMaximum(100)
         self.ui.detectionLevel_slicer.setValue(self.slicer_value)
         self.ui.detectionLevel_slicer.sliderReleased.connect(self.slicerChange)
 
-        #detect range
+            #detect range
         if self.Detection_range == 0:
             self.ui.detection_rangeOnly_radioButton.setChecked(True)
         else:
             self.ui.detection_entireNetwork_radioButton.setChecked(True)
-        #setup email recepient
+    
+            #setup email recepient
+            #create email table
+        self.emailModel=QStandardItemModel()
+        self.emailModel.setHorizontalHeaderLabels(["Email List"])
+        header = self.ui.email_tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        self.ui.email_tableView.setModel(self.emailModel)
         self.ui.addEmail_button.clicked.connect(self.addEmail)
-        #algorithm combo box
+
+            #algorithm combo box
         algorithm=["randomForest","adaboost","decisionTree","knn","naiveBayes"]
         self.ui.algorithms_comboBox.addItems(algorithm)
         self.ui.algorithms_comboBox.setCurrentIndex(self.algoIndex)
 
+            #retrain data
+        self.ui.retrainData_button.clicked.connect(self.retrainAllData)
+
+        #Export page
+        self.ui.fileLocation_address_editText.setDisabled(True)
+        exportFormat=["XML","JSON","Parquet","HTML","EXCEL","pickle"]
+        self.ui.exportFormat_comboBox.addItems(exportFormat)
+        self.ui.openFile_button.clicked.connect(self.getExportPathDirectory)
+        self.ui.fileToExportButton.clicked.connect(self.getTargetDirectory)
+        self.ui.export_button.clicked.connect(self.exportThread)
+        
+        #Get data and search in model
+        self.getData()
+
+###INIT FUNCTION
     def initConfiguration(self):
         if not os.path.exists("miscellaneous\\configuration.txt"):
             initString="slicer_value = 100\nDetection_range=0\nalgo=3\nboot=0"
@@ -109,7 +203,57 @@ class IDS_Window(QMainWindow):
                     elif "boot" in splited[0]:
                         self.boot=int(splited[1])
                 file.close()
-    #For listview
+
+    def initGraphData(self):
+        with open("miscellaneous\\attackGraph.txt", "r") as file:
+            var = file.readlines()
+            for item in var:
+                splited=item.replace("\n","").strip().split("=")
+                if "Benign" in splited[0]:
+                    self.benign=int(splited[1])
+                elif "Malicious" in splited[0]:
+                    self.malicious=int(splited[1])
+                elif "BruteForce" in splited[0]:
+                    self.bruteForce=int(splited[1])
+                elif "DDOS" in splited[0]:
+                    self.ddos=int(splited[1])
+                elif "Webbase" in splited[0]:
+                    self.webBase=int(splited[1])
+                elif "Others" in splited[0]:
+                    self.others=int(splited[1])
+            file.close()
+    
+    def getData(self):
+        try:
+            with open("miscellaneous\\userDefineRule.txt","r") as file:
+                data = file.readlines()
+                for item in data:
+                    self.collectedRule.append(item.replace("\n",""))
+                for index,item in enumerate(self.collectedRule):
+                    split=str(item).split(" ")
+                    for i in range(0,5):
+                        self.model.setItem(index,i,QStandardItem(split[i]))
+                file.close()
+            with open("miscellaneous\\email.txt","r") as file:
+                emailItem=file.readlines()
+                for item in emailItem:
+                    self.emailList.append(item.replace("\n",""))
+                for i in self.emailList:
+                    self.emailModel.appendRow(QStandardItem(i))
+                file.close
+            with open("miscellaneous\\event.txt","r") as file:
+                eventItem=file.readlines()
+                for item in eventItem:
+                    self.eventList.append(item.replace("\n",""))
+                for index,item in enumerate(self.eventList):
+                    split=str(item).split(",")
+                    for i in range(0,7):
+                        self.eventModel.setItem(index,i,QStandardItem(split[i]))
+                file.close
+        except FileNotFoundError:
+            Logging.logException(FileNotFoundError)
+
+###PAGE CHANGE
     def change_page(self):
         selectedPage = self.ui.menu_listView.currentItem().text()
         if selectedPage == "Dashboard":
@@ -124,22 +268,132 @@ class IDS_Window(QMainWindow):
             self.ui.stackedWidget.setCurrentIndex(4)
         elif selectedPage == "Switch":
             if self.trigger:
-                # print("Sniffer starting")
                 self.thread[1] = sniffThread(parent=None)
                 self.thread[1].start()
                 self.thread[1].sig.connect(self.updateLivePacket)
+                self.thread[1].icmpSig.connect(self.updateEvent)
+                self.thread[1].predictionSig.connect(self.updateGraph)
                 self.trigger = False
             else:
                 print("stop")
                 self.thread[1].stop()
                 self.trigger = True
-    def createSniffer(self):
-        loop= asyncio.new_event_loop()
-        nest_asyncio.apply(loop=loop)
-        asyncio.set_event_loop(loop=loop)
-        Thread(loop.run_forever(self.sniffing())).start()
-        asyncio.create_task(self.sniffing())
-    #For rule
+###DASHBOARD FUNCTIONS
+    def updateGraph(self,item):
+            type_bruteforce=["FTP-BruteForce","SSH-Bruteforce"]
+            type_dos=["DoS attacks-GoldenEye","DoS attacks-Slowloris","DoS attacks-SlowHTTPTest","DoS attacks-Hulk"]
+            type_ddos=["DDoS attacks-LOIC-HTTP","DDOS attack-LOIC-UDP","DDOS attack-HOIC"]
+            type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
+            type_others=["Infilteration","Bot"]
+            for label, predict in item:
+                if label in type_bruteforce:
+                    self.bruteForce +=1
+                    self.malicious +=1
+                elif label in type_ddos or label in type_dos:
+                    self.ddos+=1
+                    self.malicious+=1
+                elif label in type_webBased:
+                    self.webBase+=1
+                    self.malicious+=1
+                elif label in type_others:
+                    self.others+=1
+                    self.malicious+=1
+                else:
+                    self.benign+=1
+            #attacktype]
+            data={"BruteForce":self.bruteForce,"DDOS":self.ddos,"Web based":self.webBase,"Others":self.others}
+            attackLabel = list(data.keys())
+            count = list(data.values())
+            self.attackAX.clear()
+            self.attackAX.set_xlabel("Attack type")
+            self.attackAX.set_ylabel("Detected packet")
+            self.attackAX.set_title("Packet analysed from machine learning")
+            self.attackAX.bar(attackLabel,count)
+            self.attackCanvas.draw()
+            self.attackCanvas.flush_events()
+            
+            #packetType
+            packetData={"Benign":self.benign,"Malicious":self.malicious}
+            packetLabel=list(packetData.keys())
+            total=list(packetData.values())
+            self.packetAX.clear()
+            self.packetAX.set_title("Packet analysed from machine learning")
+            self.packetAX.pie(total,labels=packetLabel,autopct='%1.0f%%')
+            self.packetCanvas.draw()
+            self.packetCanvas.flush_events()
+
+            with open("miscellaneous\\attackGraph.txt","w") as file:
+                item="Benign = {} \nMalicious = {} \nBruteForce = {} \nDDOS = {} \nWebbase = {} \nOthers = {}".format(self.benign,self.malicious,self.bruteForce,self.ddos,self.webBase,self.others)
+                file.write(item)
+                file.close()
+        
+    def updateEvent(self,data):
+        type_bruteforce=["FTP-BruteForce","SSH-Bruteforce"]
+        type_dos=["DoS attacks-GoldenEye","DoS attacks-Slowloris","DoS attacks-SlowHTTPTest","DoS attacks-Hulk"]
+        type_ddos=["DDoS attacks-LOIC-HTTP","DDOS attack-LOIC-UDP","DDOS attack-HOIC"]
+        type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
+        type_others=["Infilteration","Bot"]
+        for label, predict in data:
+            if label in type_bruteforce:
+                self.ui.currentEvent_textBrower.append(f"BruteForce Prediction:{predict}")
+                eventStr="BruteForce,Prediction,machine learning,N/A, N/A, N/A, N/A"
+            elif label in type_ddos or label in type_dos:
+                self.ui.currentEvent_textBrower.append(f"DDOS Prediction:{predict}")
+            elif label in type_webBased:
+                self.ui.currentEvent_textBrower.append(f"WebBased Prediction:{predict}")
+            elif label in type_others:
+                self.ui.currentEvent_textBrower.append(f"Others Prediction:{predict}")
+            eventStr=f"{label},Prediction,machine learning,N/A, N/A, N/A, N/A"
+            if not os.path.exists("miscellaneous\\event.txt"):
+                with open("miscellaneous\\event.txt","W") as file:
+                    file.write(eventStr)
+                    file.close()
+            else:
+                with open("miscellaneous\\event.txt","a") as file:
+                    file.write(eventStr)
+                    file.close()
+###EVENT FUNCTIONS
+
+
+###EXPORT FUNCTIONS
+    def getTargetDirectory(self):
+        path=str(QFileDialog.getOpenFileNames())
+        self.ui.targetFile_editText.setText(path)
+        
+    def getExportPathDirectory(self):
+        path=str(QFileDialog.getExistingDirectory())
+        self.ui.fileLocation_address_editText.setText(path)
+    
+    def exportThread(self):
+        Thread(target=self.export).start()
+
+    def export(self):
+        target=self.ui.targetFile_editText.text()
+        split=target.replace("([","").replace("]","").replace("'","").split(",")
+        path=self.ui.fileLocation_address_editText.text()
+        fileformat=self.ui.exportFormat_comboBox.currentText()
+        today = str(date.today())
+        self.ui.exportProgress.setValue(0)
+        if target!=None or target!="":
+            for i in range(0,len(split)-1):
+                filetarget=str(split[i]).replace("/","\\").strip()
+                fileLoc=path.replace("/","\\")
+                if fileformat=="XML":
+                    Export(filetarget,fileLoc).to_XML()
+                elif fileformat=="JSON":
+                    Export(filetarget,fileLoc).to_JSON()
+                elif fileformat=="Parquet":
+                    Export(filetarget,fileLoc).to_parquet()
+                elif fileformat=="HTML":
+                    Export(filetarget,fileLoc).to_HTML()
+                elif fileformat=="EXCEL":
+                    Export(filetarget,fileLoc).to_excel()
+                elif fileformat=="pickle":
+                    Export(filetarget,fileLoc).to_pickle()
+                self.ui.exportProgress.setValue(round(i+1/(len(split)-1)*100))
+            Alert("Export completed","{} has been generated on{}".format(fileformat,fileLoc)).generateDesktopNotification(thread=True)
+
+###RULE FUNCTIONS
     def addRule(self):
         def checkValidIP(ipString):
             try:
@@ -157,19 +411,21 @@ class IDS_Window(QMainWindow):
             except ValueError:
                 return False
         ruleType=str(self.ui.packetType_comboBox.currentText())
-        srcIP=self.ui.add_srcIP_editText.toPlainText()
-        srcPort=self.ui.add_srcPort_editText.toPlainText()
-        dstIP=self.ui.add_dstIP_editText.toPlainText()
-        dstPort=self.ui.add_dstPort_editText.toPlainText()
+        srcIP=self.ui.add_srcIP_editText.text()
+        srcPort=self.ui.add_srcPort_editText.text()
+        dstIP=self.ui.add_dstIP_editText.text()
+        dstPort=self.ui.add_dstPort_editText.text()
         
-        #Check ip and port 
         if checkValidIP(srcIP) and checkValidIP(dstIP):
             if checkValidPort(srcPort) and checkValidPort(dstPort):
-                rule = "alert {} {} {} -> {} {}".format(ruleType,srcIP,srcPort,dstIP,dstPort)
+                rule = "{} {} {} {} {}".format(ruleType,srcIP,srcPort,dstIP,dstPort)
                 self.collectedRule.append(rule)
                 self.model.clear()
-                for i in self.collectedRule:
-                    self.model.appendRow(QStandardItem(i))
+                self.model.setHorizontalHeaderLabels(["Type","Source IP","Port","Dst IP","Port"])
+                for index,item in enumerate(self.collectedRule):
+                    split=str(item).split(" ")
+                    for i in range(0,5):
+                        self.model.setItem(index,i,QStandardItem(split[i]))
                 if not os.path.exists("miscellaneous\\userDefineRule.txt"):
                     with open("miscellaneous\\userDefineRule.txt","w") as file:
                         file.write(rule)
@@ -178,54 +434,20 @@ class IDS_Window(QMainWindow):
                     with open("miscellaneous\\userDefineRule.txt","a") as file:
                         file.write("\n{}".format(rule))
                         file.close()
-
-                #Clear field
-                self.ui.add_srcIP_editText.setPlainText("")
-                self.ui.add_srcPort_editText.setPlainText("")
-                self.ui.add_dstIP_editText.setPlainText("")
-                self.ui.add_dstPort_editText.setPlainText("")
+                self.ui.add_srcIP_editText.setText("")
+                self.ui.add_srcPort_editText.setText("")
+                self.ui.add_dstIP_editText.setText("")
+                self.ui.add_dstPort_editText.setText("")
             else:
                 Alert("Unknow network port ","Please make sure the port is within range 0-65535").generateDesktopNotification(thread=True)
         else:
             Alert("Unknow IP address","Please make sure the ip format is correct").generateDesktopNotification(thread=True)
     
-    def getData(self):
-        try:
-            with open("miscellaneous\\userDefineRule.txt","r") as file:
-                data = file.readlines()
-                for item in data:
-                    self.collectedRule.append(item.replace("\n",""))
-                file.close
-                for i in self.collectedRule:
-                    self.model.appendRow(QStandardItem(i))
-            with open("miscellaneous\\email.txt") as file:
-                emailItem=file.readlines()
-                for item in emailItem:
-                    self.emailList.append(item.replace("\n",""))
-                file.close
-        except FileNotFoundError:
-            Logging.logException(FileNotFoundError)
-
-
-            
-    def searchRule(self):
-        searchIP=self.ui.searchRulesIP_editText.toPlainText()
-        searchPort=self.ui.searchRulesPort_editText.toPlainText()
-        filterModel=QSortFilterProxyModel()
-        obtainedIP = self.model.findItems(searchIP)
-        obtainedPort = self.model.findItems(searchPort)
-        if len(obtainedIP) > 0:
-            for item in obtainedIP:
-                if searchIP:
-                    self.model.takeRow(item.row()) #take row of item
-                    self.model.insertRow(0, item) 
-        if len(obtainedPort)>0:
-            pass
-
-    #For setting
+###SETTING FUNCTIONS
     def slicerChange(self):
         value = self.ui.detectionLevel_slicer.value()
         self.changeVariableOnTxt("slicer_value = {}".format(self.slicer_value),"slicer_value = {}".format(value))
+        self.slicer_value=value
 
     def changeVariableOnTxt(self,ori,replace):
         with open("miscellaneous\\configuration.txt", "r") as file:
@@ -236,11 +458,10 @@ class IDS_Window(QMainWindow):
             file.write(data)
             file.close()
 
-
     def addEmail(self):
-        email= self.ui.email_editText.toPlainText()
+        email= self.ui.email_editText.text()
         emailPattern = "[\w.]+\@[\w.]+"
-        if re.search(emailPattern, email):
+        if re.search(emailPattern, email) and email!= "":
             if not os.path.exists("miscellaneous\\email.txt"):
                 with open("miscellaneous\\email.txt","w") as file:
                     file.write(email)
@@ -249,31 +470,84 @@ class IDS_Window(QMainWindow):
                 with open("miscellaneous\\email.txt","a") as file:
                     file.write("\n{}".format(email))
                     file.close()
+            self.emailModel.clear()
+            self.emailModel.setHorizontalHeaderLabels(["Email List"])
+            for i in self.emailList:
+                self.emailModel.appendRow(QStandardItem(i))
             Alert("Successfully saved the email","").generateDesktopNotification(thread=True)
             Alert("Welcome to sentinel","You has been added to received notification email from sentinel, any threat will be notify to you via email and notification").sendEmail(personalEmail=email)
-            self.ui.email_editText.setPlainText("")
+            self.ui.email_editText.setText("")
         else:
             Alert("Invalid email format","Please enter valid email").generateDesktopNotification(thread=True)
-            self.ui.email_editText.setPlainText("")
+            self.ui.email_editText.setText("")
+    
+    def retrainAllData(self):
+        # if os.path.exists("training\\cleanedData"):
+        #     print("Deleting existing csv file in cleanedData")
+        #     filelist = glob("training\\cleanedData" + "\\*.csv")
+        #     for file in filelist:
+        #         os.remove(file)
+        # print("Start sampling data")
+        # for dirname, _, filenames in os.walk("training\\dataset"):
+        #     for filename in filenames:
+        #         pds=[]
+        #         if filename.endswith('.csv'):
+        #             pds = os.path.join(dirname, filename)
+        #             Datapreprocess(pds).sampleCleanEachLabelEqualy(percentage=0.3)
+        retrain=Learning()
+        retrain.getSpecificDF()
+        retrain.splitTrainTestData()
+        retrain.overwriteAllModel()
 
+    def starupOnBoot():
+        pth = os.path.dirname(os.path.realpath(__file__))
+        intendedScript="IDS.py"
+        address=os.join(pth,intendedScript)
+        key = reg.HKEY_CURRENT_USER
+        key_value = "Software\Microsoft\Windows\CurrentVersion\Run"
+        openkey = reg.OpenKey(key,key_value,0,reg.KEY_ALL_ACCESS)
+        reg.SetValueEx(openkey,"any_name",0,reg.REG_SZ,address)
+        reg.CloseKey(openkey)
         
-        
+###RECEIVED FROM PYQT FUNCTIONS
     def updateLivePacket(self,ip):
         self.ui.livePacket_textBrowser.append(ip)
 
+    def updateEvent(self,event):
+        self.ui.currentEvent_textBrower.append(event)
+
+    def thread_updateGraph(self,item):
+        Thread(target=self.updateGraph,args=(item,)).start()
+
+###THREADING FOR SNIFF FUNCTION
 class sniffThread(QThread):
     sig = pyqtSignal(str)
+    icmpSig =pyqtSignal(str)
+    predictionSig = pyqtSignal(zip)
+    updateEvent = pyqtSignal(zip)
+    loop=None
     def __init__(self,parent=None):
         super(sniffThread,self).__init__(parent)
         self.is_running = True
 
     def run(self):
-        loop= asyncio.new_event_loop()
-        nest_asyncio.apply(loop=loop)
-        asyncio.set_event_loop(loop=loop)
-        Thread(loop.run_forever(self.testSniffing())).start()
-        asyncio.create_task(self.testSniffing())
-
+        try:
+            self.loop= asyncio.new_event_loop()
+            asyncio.set_event_loop(loop=self.loop)
+            nest_asyncio.apply(loop=self.loop)
+            # self.loop=loop
+            self.loop.create_future(self.testSniffing())
+            self.loop.run_forever(self.testSniffing)
+            # self.loop.create_task(self.testSniffing())
+        except Exception:
+                # self.loop.stop()
+                # self.loop= asyncio.new_event_loop()
+                # nest_asyncio.apply(loop=self.loop)
+                # asyncio.set_event_loop(loop=self.loop)
+                # self.loop.create_future(self.testSniffing()[1])
+                # self.loop.run_forever(self.testSniffing()[1])
+            pass
+            
     def testSniffing(self):
         print("Sniffer starting")
         today = str(datetime.today().strftime("%Y-%m-%d"))
@@ -291,35 +565,58 @@ class sniffThread(QThread):
                     src_port = packet["TCP"].srcport
                     dst_port = packet["TCP"].dstport
                     # print("{} {} -> {} {} ".format(src_ip, src_port, dst_ip, dst_port))
-                    self.sig.emit("{} {} -> {} {} ".format(src_ip, src_port, dst_ip, dst_port))
+                    self.sig.emit("{}\t{}\t->\t{}\t{}\t[TCP]".format(src_ip, src_port, dst_ip, dst_port))
                     if "segment_data" in dir(packet["TCP"]):
                         payload = packet["TCP"].segment_data
                         payload = str(payload).replace(":", " ")
+                        Rule.checkUserBanIP("TCP",src_ip,src_port,dst_ip,dst_port)
                         Rule("tcp", src_ip, src_port, dst_ip, dst_port).checkRules(
                             payload
                         )
                 if packet.transport_layer == "UDP":
+                    udp_srcport=packet["UDP"].srcport
+                    udp_dstport=packet["UDP"].dstport
+                    self.sig.emit("{}\t{}\t->\t{}\t{}\t[UDP]".format(src_ip, udp_srcport, dst_ip, udp_dstport))
                     if "segment_data" in dir(packet["UDP"]):
                         payload = packet["UDP"].segment_data
                         payload = str(payload).replace(":", " ")
-                        Rule("udp", src_ip, src_port, dst_ip, dst_port).checkRules(
+                        Rule.checkUserBanIP("UDP",src_ip,src_port,dst_ip,dst_port)
+                        Rule("udp", src_ip, udp_srcport, dst_ip, udp_dstport).checkRules(
                             payload
                         )
-            counter += 1
-            if counter == 100:
-                Detection.prediction()
-                counter = 0
+                if packet.transport_layer == "ICMP":
+                    Alert("ICMP Ping detected","").generateDesktopNotification(thread=True)
+                    self.sig.emit("{}\t->\t{}\t[ICMP]".format(src_ip,dst_ip))
+                    self.icmpSig.emit("Ping received {}".format(src_ip))
+            counter+=1
+            try:
+                if counter == 25:
+                    counter = 0
+                    label,predict=Detection.prediction()
+                    if len(label) >0 and len(predict)>0:
+                        zipLabel=zip(label,predict)
+                        self.predictionSig.emit(zipLabel)
+                        self.updateEvent.emit(zipLabel)
+            except:
+                pass
     #
     def stop(self):
         self.is_running=False
+        try:
+            if self.loop.is_running():
+                self.loop.call_soon_threadsafe(self.loop.stop)
+                for task in asyncio.Task.all_tasks():
+                    task.cancel()
+                    self.loop.run_until_complete(task)
+                    self.loop.stop()
+        except Exception:
+            pass
         self.terminate()
 
 
 if __name__ == "__main__":
     app = QApplication([])
     window = IDS_Window()
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
     with open("ui\\SyNet.qss", "r") as file:
         window.setStyleSheet(file.read())
     window.show()
