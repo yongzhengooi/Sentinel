@@ -1,11 +1,13 @@
-from ast import main
 from asyncio.subprocess import Process
 from ctypes import windll
 from distutils.command.build import build
+from errno import WSAEDQUOT
+from lib2to3.pgen2.token import EQEQUAL
 from multiprocessing import current_process, process
 from multiprocessing.sharedctypes import Value
 from operator import indexOf
 import ipaddress
+from tkinter import E, W
 import winreg as reg
 import lib.Export
 import numpy as np
@@ -119,13 +121,14 @@ class IDS_Window(QMainWindow):
         
         #Event page
         self.eventModel=QStandardItemModel()
-        self.eventModel.setHorizontalHeaderLabels(["Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
+        self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
         eventHeader = self.ui.eventTableView.horizontalHeader()
         eventHeader.setSectionResizeMode(QHeaderView.Stretch)     
         self.eventfilterModel=QSortFilterProxyModel()
         self.eventfilterModel.setSourceModel(self.eventModel)
         self.eventfilterModel.setFilterKeyColumn(-1)
         self.ui.eventTableView.setModel(self.eventfilterModel)
+        self.eventfilterModel.dataChanged.connect(lambda:self.updateDataOnTxt(self.ui.eventTableView,filepath="event.txt"))
 
 
         #Rule page
@@ -138,6 +141,7 @@ class IDS_Window(QMainWindow):
         self.filterModel.setFilterKeyColumn(-1)
         self.ui.rules_tableView.setModel(self.filterModel)
         self.ui.addRules_button.clicked.connect(self.addRule)
+        self.filterModel.dataChanged.connect(lambda:self.updateDataOnTxt(self.ui.rules_tableView,"userDefineRule.txt"))
         self.ui.searchRulesIP_editText.textChanged.connect(self.filterModel.setFilterRegExp)
         self.ui.searchRulesPort_editText.textChanged.connect(self.filterModel.setFilterRegExp)
 
@@ -161,7 +165,8 @@ class IDS_Window(QMainWindow):
         header = self.ui.email_tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
         self.ui.email_tableView.setModel(self.emailModel)
-        self.ui.addEmail_button.clicked.connect(self.addEmail)
+        self.ui.addEmail_button.clicked.connect(lambda:Thread(target=self.addEmail).start())
+        self.emailModel.dataChanged.connect(lambda:self.updateDataOnTxt(self.ui.email_tableView,"email.txt"))
 
             #algorithm combo box
         algorithm=["randomForest","adaboost","decisionTree","knn","naiveBayes"]
@@ -169,7 +174,7 @@ class IDS_Window(QMainWindow):
         self.ui.algorithms_comboBox.setCurrentIndex(self.algoIndex)
 
             #retrain data
-        self.ui.retrainData_button.clicked.connect(self.retrainAllData)
+        self.ui.retrainData_button.clicked.connect(lambda:Thread(targer=self.retrainAllData).start())
 
         #Export page
         self.ui.fileLocation_address_editText.setDisabled(True)
@@ -177,7 +182,7 @@ class IDS_Window(QMainWindow):
         self.ui.exportFormat_comboBox.addItems(exportFormat)
         self.ui.openFile_button.clicked.connect(self.getExportPathDirectory)
         self.ui.fileToExportButton.clicked.connect(self.getTargetDirectory)
-        self.ui.export_button.clicked.connect(self.exportThread)
+        self.ui.export_button.clicked.connect(lambda:Thread(target=self.export).start())
         
         #Get data and search in model
         self.getData()
@@ -230,7 +235,7 @@ class IDS_Window(QMainWindow):
                 for item in data:
                     self.collectedRule.append(item.replace("\n",""))
                 for index,item in enumerate(self.collectedRule):
-                    split=str(item).split(" ")
+                    split=str(item).split(",")
                     for i in range(0,5):
                         self.model.setItem(index,i,QStandardItem(split[i]))
                 file.close()
@@ -247,11 +252,11 @@ class IDS_Window(QMainWindow):
                     self.eventList.append(item.replace("\n",""))
                 for index,item in enumerate(self.eventList):
                     split=str(item).split(",")
-                    for i in range(0,7):
+                    for i in range(0,8):
                         self.eventModel.setItem(index,i,QStandardItem(split[i]))
                 file.close
-        except FileNotFoundError:
-            Logging.logException(FileNotFoundError)
+        except FileNotFoundError as e:
+            Logging.logException(str(e))
 
 ###PAGE CHANGE
     def change_page(self):
@@ -269,14 +274,17 @@ class IDS_Window(QMainWindow):
         elif selectedPage == "Switch":
             if self.trigger:
                 self.thread[1] = sniffThread(parent=None)
+                self.thread[1].pause=False
                 self.thread[1].start()
+                self.thread[1].notifyUser(self.trigger)
                 self.thread[1].sig.connect(self.updateLivePacket)
                 self.thread[1].icmpSig.connect(self.updateEvent)
                 self.thread[1].predictionSig.connect(self.updateGraph)
                 self.trigger = False
             else:
                 print("stop")
-                self.thread[1].stop()
+                self.thread[1].notifyUser(self.trigger)
+                self.thread[1].pause=True
                 self.trigger = True
 ###DASHBOARD FUNCTIONS
     def updateGraph(self,item):
@@ -336,14 +344,13 @@ class IDS_Window(QMainWindow):
         for label, predict in data:
             if label in type_bruteforce:
                 self.ui.currentEvent_textBrower.append(f"BruteForce Prediction:{predict}")
-                eventStr="BruteForce,Prediction,machine learning,N/A, N/A, N/A, N/A"
             elif label in type_ddos or label in type_dos:
                 self.ui.currentEvent_textBrower.append(f"DDOS Prediction:{predict}")
             elif label in type_webBased:
                 self.ui.currentEvent_textBrower.append(f"WebBased Prediction:{predict}")
             elif label in type_others:
                 self.ui.currentEvent_textBrower.append(f"Others Prediction:{predict}")
-            eventStr=f"{label},Prediction,machine learning,N/A, N/A, N/A, N/A"
+            eventStr=f"{str(datetime.now())},{label},Prediction,Probability:{predict},None,None,None,None"
             if not os.path.exists("miscellaneous\\event.txt"):
                 with open("miscellaneous\\event.txt","W") as file:
                     file.write(eventStr)
@@ -353,7 +360,24 @@ class IDS_Window(QMainWindow):
                     file.write(eventStr)
                     file.close()
 ###EVENT FUNCTIONS
-
+    def updateDataOnTxt(self,tableview,filepath="",update=False):
+        model = tableview.model()
+        concatData=""
+        data = []
+        for row in range(model.rowCount()):
+            data.append([])
+            for column in range(model.columnCount()):
+                index = model.index(row, column)
+                data[row].append(str(model.data(index)))
+        for i in data:
+            concatData+=",".join(i)+"\n"
+        try:
+            if len(data)>0:
+                with open(f"miscellaneous\\{filepath}","w") as file:
+                    file.write(concatData)
+                    file.close()
+        except FileNotFoundError:
+           Logging.logException(f"{filepath} not found")
 
 ###EXPORT FUNCTIONS
     def getTargetDirectory(self):
@@ -363,16 +387,12 @@ class IDS_Window(QMainWindow):
     def getExportPathDirectory(self):
         path=str(QFileDialog.getExistingDirectory())
         self.ui.fileLocation_address_editText.setText(path)
-    
-    def exportThread(self):
-        Thread(target=self.export).start()
 
     def export(self):
         target=self.ui.targetFile_editText.text()
         split=target.replace("([","").replace("]","").replace("'","").split(",")
         path=self.ui.fileLocation_address_editText.text()
         fileformat=self.ui.exportFormat_comboBox.currentText()
-        today = str(date.today())
         self.ui.exportProgress.setValue(0)
         if target!=None or target!="":
             for i in range(0,len(split)-1):
@@ -391,7 +411,7 @@ class IDS_Window(QMainWindow):
                 elif fileformat=="pickle":
                     Export(filetarget,fileLoc).to_pickle()
                 self.ui.exportProgress.setValue(round(i+1/(len(split)-1)*100))
-            Alert("Export completed","{} has been generated on{}".format(fileformat,fileLoc)).generateDesktopNotification(thread=True)
+            Alert("Export completed","{} has been generated on{}".format(fileformat,fileLoc)).generateDesktopNotification()
 
 ###RULE FUNCTIONS
     def addRule(self):
@@ -418,30 +438,26 @@ class IDS_Window(QMainWindow):
         
         if checkValidIP(srcIP) and checkValidIP(dstIP):
             if checkValidPort(srcPort) and checkValidPort(dstPort):
-                rule = "{} {} {} {} {}".format(ruleType,srcIP,srcPort,dstIP,dstPort)
+                rule = "{},{},{},{},{}".format(ruleType,srcIP,srcPort,dstIP,dstPort)
                 self.collectedRule.append(rule)
                 self.model.clear()
                 self.model.setHorizontalHeaderLabels(["Type","Source IP","Port","Dst IP","Port"])
                 for index,item in enumerate(self.collectedRule):
-                    split=str(item).split(" ")
+                    split=str(item).split(",")
                     for i in range(0,5):
                         self.model.setItem(index,i,QStandardItem(split[i]))
                 if not os.path.exists("miscellaneous\\userDefineRule.txt"):
                     with open("miscellaneous\\userDefineRule.txt","w") as file:
                         file.write(rule)
                         file.close()
-                else:
-                    with open("miscellaneous\\userDefineRule.txt","a") as file:
-                        file.write("\n{}".format(rule))
-                        file.close()
                 self.ui.add_srcIP_editText.setText("")
                 self.ui.add_srcPort_editText.setText("")
                 self.ui.add_dstIP_editText.setText("")
                 self.ui.add_dstPort_editText.setText("")
             else:
-                Alert("Unknow network port ","Please make sure the port is within range 0-65535").generateDesktopNotification(thread=True)
+                Alert("Unknow network port ","Please make sure the port is within range 0-65535").generateDesktopNotification()
         else:
-            Alert("Unknow IP address","Please make sure the ip format is correct").generateDesktopNotification(thread=True)
+            Alert("Unknow IP address","Please make sure the ip format is correct").generateDesktopNotification()
     
 ###SETTING FUNCTIONS
     def slicerChange(self):
@@ -462,6 +478,11 @@ class IDS_Window(QMainWindow):
         email= self.ui.email_editText.text()
         emailPattern = "[\w.]+\@[\w.]+"
         if re.search(emailPattern, email) and email!= "":
+            self.emailList.append(email)
+            self.emailModel.clear()
+            self.emailModel.setHorizontalHeaderLabels(["Email List"])
+            for i in self.emailList:
+                self.emailModel.appendRow(QStandardItem(i))
             if not os.path.exists("miscellaneous\\email.txt"):
                 with open("miscellaneous\\email.txt","w") as file:
                     file.write(email)
@@ -470,15 +491,11 @@ class IDS_Window(QMainWindow):
                 with open("miscellaneous\\email.txt","a") as file:
                     file.write("\n{}".format(email))
                     file.close()
-            self.emailModel.clear()
-            self.emailModel.setHorizontalHeaderLabels(["Email List"])
-            for i in self.emailList:
-                self.emailModel.appendRow(QStandardItem(i))
-            Alert("Successfully saved the email","").generateDesktopNotification(thread=True)
+            Alert("Successfully saved the email","").generateDesktopNotification()
             Alert("Welcome to sentinel","You has been added to received notification email from sentinel, any threat will be notify to you via email and notification").sendEmail(personalEmail=email)
             self.ui.email_editText.setText("")
         else:
-            Alert("Invalid email format","Please enter valid email").generateDesktopNotification(thread=True)
+            Alert("Invalid email format","Please enter valid email").generateDesktopNotification()
             self.ui.email_editText.setText("")
     
     def retrainAllData(self):
@@ -516,19 +533,18 @@ class IDS_Window(QMainWindow):
     def updateEvent(self,event):
         self.ui.currentEvent_textBrower.append(event)
 
-    def thread_updateGraph(self,item):
-        Thread(target=self.updateGraph,args=(item,)).start()
-
 ###THREADING FOR SNIFF FUNCTION
 class sniffThread(QThread):
     sig = pyqtSignal(str)
     icmpSig =pyqtSignal(str)
     predictionSig = pyqtSignal(zip)
     updateEvent = pyqtSignal(zip)
+    pause=False
     loop=None
     def __init__(self,parent=None):
         super(sniffThread,self).__init__(parent)
         self.is_running = True
+        self.pause=False
 
     def run(self):
         try:
@@ -540,18 +556,13 @@ class sniffThread(QThread):
             self.loop.run_forever(self.testSniffing)
             # self.loop.create_task(self.testSniffing())
         except Exception:
-                # self.loop.stop()
-                # self.loop= asyncio.new_event_loop()
-                # nest_asyncio.apply(loop=self.loop)
-                # asyncio.set_event_loop(loop=self.loop)
-                # self.loop.create_future(self.testSniffing()[1])
-                # self.loop.run_forever(self.testSniffing()[1])
             pass
             
     def testSniffing(self):
-        print("Sniffer starting")
         today = str(datetime.today().strftime("%Y-%m-%d"))
         counter = 0
+        if self.pause:
+            while self.pause:time.sleep(1)
         capture = pyshark.LiveCapture(
             "Wi-Fi",
             output_file="data\\{}.pcap".format(today),
@@ -564,7 +575,6 @@ class sniffThread(QThread):
                 if packet.transport_layer == "TCP":
                     src_port = packet["TCP"].srcport
                     dst_port = packet["TCP"].dstport
-                    # print("{} {} -> {} {} ".format(src_ip, src_port, dst_ip, dst_port))
                     self.sig.emit("{}\t{}\t->\t{}\t{}\t[TCP]".format(src_ip, src_port, dst_ip, dst_port))
                     if "segment_data" in dir(packet["TCP"]):
                         payload = packet["TCP"].segment_data
@@ -585,12 +595,12 @@ class sniffThread(QThread):
                             payload
                         )
                 if packet.transport_layer == "ICMP":
-                    Alert("ICMP Ping detected","").generateDesktopNotification(thread=True)
+                    Alert("ICMP Ping detected","").generateDesktopNotification()
                     self.sig.emit("{}\t->\t{}\t[ICMP]".format(src_ip,dst_ip))
                     self.icmpSig.emit("Ping received {}".format(src_ip))
             counter+=1
             try:
-                if counter == 25:
+                if counter == 100:
                     counter = 0
                     label,predict=Detection.prediction()
                     if len(label) >0 and len(predict)>0:
@@ -599,7 +609,12 @@ class sniffThread(QThread):
                         self.updateEvent.emit(zipLabel)
             except:
                 pass
-    #
+    def notifyUser(self,trigger):
+        if trigger:
+            Alert("Starting","Initialising the sniffer").generateDesktopNotification()
+        else:
+            Alert("Pausing","Waiting process the remaining packet").generateDesktopNotification()
+
     def stop(self):
         self.is_running=False
         try:
