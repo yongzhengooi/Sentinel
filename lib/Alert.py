@@ -1,22 +1,16 @@
-from multiprocessing import context
-import ssl
 import smtplib
 import os
-import platform
 from lib.Logging import *
-# from Logging import Logging
 from email.message import EmailMessage
 from dotenv import load_dotenv
 _=load_dotenv("var.env")
-if platform.system() == "Windows":
-    import win10toast 
-elif platform.system() == "Linux":
-    import subprocess
+from winotify import Notification
 class Alert:
     def __init__(self,msg_title,msg_content):
         self.msg_title=msg_title
         self.msg_content=msg_content
-        self.imgIcon="resources\\logo.ico"
+        currentFolderPath=str(os.path.abspath(os.getcwd())).replace("/","\\")
+        self.imgIcon=currentFolderPath+"\\resources\\logo.ico"
         self.emailList=self.getEmailList()
 
     def getEmailList(self):
@@ -28,8 +22,14 @@ class Alert:
             file.close()
             return emailArray
 
-    def generateDesktopNotification(self,thread=False):
-        win10toast.ToastNotifier().show_toast(self.msg_title,self.msg_content,self.imgIcon,5,threaded=thread)
+    # def generateDesktopNotification(self,thread=False,length=5):
+    #     win10toast.ToastNotifier().show_toast(self.msg_title,self.msg_content,self.imgIcon,length,threaded=thread)
+    def generateDesktopNotification(self):
+        toast = Notification(app_id="Sentinel",
+                     title=self.msg_title,
+                     msg=self.msg_content,
+                     icon=self.imgIcon)
+        toast.show()
 
     def sendEmail(self,personalEmail=None):
         try:
