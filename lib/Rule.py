@@ -40,14 +40,6 @@ class Rule:
         self.HTTP_IP = str(HTTP_IP).strip()
         self.HTTP_PORT = str(HTTP_PORT).strip()
 
-    def preCheking(packet):
-        pass
-
-    def indexingRules(regex):
-        fullruleStr = ""
-        with open("rules\\snort3-community.rules", "r") as file:
-            ruleFile=file.read()
-            return re.findall("{} \w+".format(regex),ruleFile)
             
     def checkRules(self, payload):
         #format the data to match the rule
@@ -176,61 +168,24 @@ class Rule:
                             decodeContent = decodeContent.lower()
                             decodePayload = decodePayload.lower()
                     except UnicodeDecodeError :
-                        Logging.logException("Unable to decode the payload via ASCII")
+                        pass
                     except ValueError:
                         pass
                 else:
                     continue
-                    
-            # if "content-1" in ruleDict:
-            #     # modPayload = payload
-            #     c=ruleDict.get("content-1")
-            #     content = c.strip('"').replace('"', "")
-            #     splitObj = content.split(",")
-            #     content=splitObj[0]
-            #     oricont=content
-            #     # modPayload,nocase=self.getModifiedPayload(splitObj,payload)
-            #     # decodeContent,decodePayload=self.getHelixyContentAndPayload(content,modPayload,nocase)
-            #     for ob in splitObj:
-            #         if "nocase" in ob:
-            #             nocase=True
-            #         if "depth" in ob:
-            #             depth=re.findall('\d+',ob)
-            #             modPayload=payload[:32*int(depth[0])]
-            #         if "offset" in ob:
-            #             offset=re.findall('\d+',ob)
-            #             modPayload=payload[4*int(offset[0]):]
-            #     if "content-2" in ruleDict:
-            #         pass
-            #     if len(content) >2:
-            #         splitContent=content.split("|")
-            #         decodeContent=""
-            #         decodePayload=""
-            #         # try decode for rule content with ascii
-            #         try:
-            #             for index,hex in enumerate(splitContent):
-            #                 if Rule.checkHex(hex.replace(" ","")) and re.search("[0-9a-fA-F][0-9a-fA-F]",hex):
-            #                     byteDecode=bytes.fromhex(hex)
-            #                     splitContent[index] =  byteDecode.decode("ASCII",errors="ignore")
-            #                 decodePayload=bytes.fromhex(modPayload).decode("ASCII",errors="ignore")
-            #                 decodeContent= "".join(splitContent)
-            #             if nocase:
-            #                 decodeContent = decodeContent.lower()
-            #                 decodePayload = decodePayload.lower()
-            #         except UnicodeDecodeError :
-            #             Logging.logException("Unable to decode the payload via ASCII")
-            #         except ValueError:
-            #             pass
-            #         # print(decodeContent)
-                # if re.search(r"[!@)(#?|$%^&\\*.]",decodeContent):
-                    
-                # else:
-                #     decodeContent=str(binascii.hexlify(bytes(str(decodeContent),"ascii")),"ascii").replace(" ","")
-                # converted_payload=binascii.hexlify(bytes(str(payload),"utf8"))
+
                 decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"utf8")),"utf8").replace(" ","")
                 decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"utf8")),"utf8").replace(" ","")
-                # print(decodeContent)
-                # print(decodePayload)
+                if "flow" in ruleDict:
+                    flow=ruleDict.get("flow")
+                    if flow in decodeContent:
+                        if i == 1:
+                            multipleContentCheck[i-1]=True
+                        else:
+                            multipleContentCheck.append(True)
+                    else:
+                        multipleContentCheck.append(False)
+
                 if decodeContent in decodePayload and decodeContent != "":
                     if i == 1:
                         multipleContentCheck[i-1]=True
@@ -238,26 +193,26 @@ class Rule:
                         multipleContentCheck.append(True)
                 else:
                     multipleContentCheck.append(False)
+            if False in multipleContentCheck:
+                pass
+            else:
                 if "pcre" in ruleDict:
                     regex = ruleDict.get("pcre")
                     if re.search(r"[!@)(#?$%^&*.]",content):
                         escContent=re.escape(regex)
                         escpayload=re.escape(modPayload)
-                        decodeMatchingPayload=str(binascii.hexlify(bytes(str(escpayload),"utf8")),"utf8").upper().replace(" ","")
+                        decodeMatchingPayload=str(binascii.hexlify(bytes(str(escpayload),"utf8")),"utf8").replace(" ","")
                         if re.search(escContent,decodeMatchingPayload):
-                            multipleContentCheck[i-1]=True
                             Alert(
                                 ruleDict.get("classtype"), ruleDict.get("msg")
                             ).generateDesktopNotification()
                             Logging.logInfo("payload :{} \n content {}".format(payload,content))
-            if False in multipleContentCheck:
-                pass
-            else:
-                Alert(
-                        ruleDict.get("classtype"), ruleDict.get("msg")
-                    ).generateDesktopNotification()
-                Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
-                multipleContentCheck.clear()
+                else:
+                    Alert(
+                            ruleDict.get("classtype"), ruleDict.get("msg")
+                        ).generateDesktopNotification()
+                    Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
+                    multipleContentCheck.clear()
 
     def getModifiedPayload(self,splitObj,payload):
         modPayload = payload
@@ -273,37 +228,19 @@ class Rule:
                 modPayload=str(payload[4*int(offset[0]):]).replace(" ","")
         return modPayload,nocase
     
-    def getHelifyContentAndPayload(self,contentlist,modPayload,nocase=False):
-        # try decode for rule content with ascii
-        try:
-            splitContent=contentlist.split("|")
-            for index,hex in enumerate(splitContent):
-                if Rule.checkHex(hex.replace(" ","")) and re.search("[0-9a-fA-F][0-9a-fA-F]",hex):
-                    byteDecode=bytes.fromhex(hex)
-                    splitContent[index] =  byteDecode.decode("ASCII",errors="ignore")
-                decodePayload=bytes.fromhex(modPayload).decode("ASCII",errors="ignore")
-            if splitContent != None:
-                decodeContent= "".join(splitContent)
-            else:
-                decodeContent=contentlist
-            if nocase:
-                decodeContent = decodeContent.lower()
-                decodePayload = decodePayload.lower()
-
-            decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"utf8")),"utf8").replace(" ","")
-            decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"utf8")),"utf8").replace(" ","")
-            return decodeContent, decodePayload
-        except UnicodeDecodeError :
-            Logging.logException("Unable to decode the payload via ASCII")
-        except ValueError:
-            Logging.logException("Non hex value found")
-        except TypeError:
-            Logging.logException("Unable to decode the payload via ASCII")
-        # print(decodeContent)
-        
     def checkBannedIP(src,dst):
         with open("rules\\badIP.txt", "r") as file:
             banIP = file.readlines()
             for ip in banIP:
                 if src == ip or dst == ip:
+                    Alert("Bad traffic detected","Source : {} -> {} ".format(src,dst)).generateDesktopNotification()
+
+    def checkUserBanIP(protocol,src,srcport,dst,dstport):
+        with open("miscellaneous\\userDefineRule", "r") as file:
+            defineIP = file.readlines()
+            for item in defineIP:
+                itemStr="{protocol} {src} {srcport} {dst} {dstport}"
+                if re.match(itemStr,item):
                     Alert("User prohibited traffic detected","Source : {} -> {} ".format(src,dst)).generateDesktopNotification()
+                    
+                
