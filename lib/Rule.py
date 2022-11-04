@@ -176,15 +176,15 @@ class Rule:
 
                 decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"utf8")),"utf8").replace(" ","")
                 decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"utf8")),"utf8").replace(" ","")
-                if "flow" in ruleDict:
-                    flow=ruleDict.get("flow")
-                    if flow in decodeContent:
-                        if i == 1:
-                            multipleContentCheck[i-1]=True
-                        else:
-                            multipleContentCheck.append(True)
-                    else:
-                        multipleContentCheck.append(False)
+                # if "flow" in ruleDict:
+                #     flow=ruleDict.get("flow")
+                #     if flow in decodeContent:
+                #         if i == 1:
+                #             multipleContentCheck[i-1]=True
+                #         else:
+                #             multipleContentCheck.append(True)
+                #     else:
+                #         multipleContentCheck.append(False)
 
                 if decodeContent in decodePayload and decodeContent != "":
                     if i == 1:
@@ -199,10 +199,10 @@ class Rule:
                 if "pcre" in ruleDict:
                     regex = ruleDict.get("pcre")
                     if re.search(r"[!@)(#?$%^&*.]",content):
-                        escContent=re.escape(regex)
+                        escContent=re.compile(regex)
                         escpayload=re.escape(modPayload)
-                        decodeMatchingPayload=str(binascii.hexlify(bytes(str(escpayload),"utf8")),"utf8").replace(" ","")
-                        if re.search(escContent,decodeMatchingPayload):
+                        # decodeMatchingPayload=str(binascii.hexlify(bytes(str(escpayload),"utf8")),"utf8").replace(" ","")
+                        if re.search(escContent,escpayload):
                             Alert(
                                 ruleDict.get("classtype"), ruleDict.get("msg")
                             ).generateDesktopNotification()
@@ -213,6 +213,7 @@ class Rule:
                         ).generateDesktopNotification()
                     Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
                     multipleContentCheck.clear()
+                    return [self.src_ip,self.src_port,self.dst_ip,self.dst_port,ruleDict.get("classtype"), ruleDict.get("msg")]
 
     def getModifiedPayload(self,splitObj,payload):
         modPayload = payload
@@ -222,10 +223,10 @@ class Rule:
                 nocase=True
             if "depth" in ob:
                 depth=re.findall('\d+',ob)
-                modPayload=str(payload[:32*int(depth[0])]).replace(" ","")
+                modPayload=str(payload[:2*int(depth[0])]).replace(" ","")
             if "offset" in ob:
                 offset=re.findall('\d+',ob)
-                modPayload=str(payload[4*int(offset[0]):]).replace(" ","")
+                modPayload=str(payload[2*int(offset[0]):]).replace(" ","")
         return modPayload,nocase
     
     def checkBannedIP(src,dst):
@@ -236,11 +237,19 @@ class Rule:
                     Alert("Bad traffic detected","Source : {} -> {} ".format(src,dst)).generateDesktopNotification()
 
     def checkUserBanIP(protocol,src,srcport,dst,dstport):
-        with open("miscellaneous\\userDefineRule", "r") as file:
+        with open("miscellaneous\\userDefineRule.txt", "r") as file:
             defineIP = file.readlines()
             for item in defineIP:
-                itemStr="{protocol} {src} {srcport} {dst} {dstport}"
-                if re.match(itemStr,item):
+                splitItem=item.split(",")
+                if "any" in splitItem[2]:
+                    itemStr=f"{protocol},{src},any,{dst},{dstport}"
+                elif "any" in splitItem[4]:
+                    itemStr=f"{protocol},{src},{srcport},{dst},{dstport}"
+                elif "any" in splitItem[2] and "any" in splitItem[4]:
+                    itemStr=f"{protocol},{src},any,{dst},any"
+                else:
+                    itemStr=f"{protocol},{src},{srcport},{dst},{dstport}"
+                if re.match(item.replace("\n",""),itemStr):
                     Alert("User prohibited traffic detected","Source : {} -> {} ".format(src,dst)).generateDesktopNotification()
                     
                 
