@@ -49,6 +49,11 @@ from ui.test import Ui_MainWindow
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+alertThreshold=0
+currentAlgo="knn"
+pred = Learning()
+pred.getSpecificDF()
+pred.splitTrainTestData()
 # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 class IDS_Window(QMainWindow):
     def __init__(self):
@@ -56,12 +61,9 @@ class IDS_Window(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.trigger=True
-        #ai class init
-        pred = Learning()
-        pred.getSpecificDF()
-        pred.splitTrainTestData()
+    
         #Variable init
-        self.slicer_value=0
+        self.slicer_value=-100
         self.Detection_range=0
         self.algoIndex=0
         self.boot=0
@@ -155,8 +157,8 @@ class IDS_Window(QMainWindow):
 
         #Setting page
             #slicer
-        self.ui.detectionLevel_slicer.setMinimum(30)
-        self.ui.detectionLevel_slicer.setMaximum(100)
+        self.ui.detectionLevel_slicer.setMinimum(-100)
+        self.ui.detectionLevel_slicer.setMaximum(-30)
         self.ui.detectionLevel_slicer.setValue(self.slicer_value)
         self.ui.detectionLevel_slicer.sliderReleased.connect(self.slicerChange)
 
@@ -180,6 +182,9 @@ class IDS_Window(QMainWindow):
         algorithm=["randomForest","adaboost","decisionTree","knn","naiveBayes"]
         self.ui.algorithms_comboBox.addItems(algorithm)
         self.ui.algorithms_comboBox.setCurrentIndex(self.algoIndex)
+        self.ui.algorithms_comboBox.currentIndexChanged.connect(self.updateAlgoComboBox)
+        global currentAlgo
+        currentAlgo=self.ui.algorithms_comboBox.currentText()
 
             #retrain data
         self.ui.retrainData_button.clicked.connect(lambda:Thread(target=self.retrainAllData).start())
@@ -194,14 +199,11 @@ class IDS_Window(QMainWindow):
         
         #Get data and search in model
         self.getData()
-    # def getRuleComboBoxValue(self,value):
-    #     if value == "Any":
-    #         return -1
-    #     if value == ""
+
 ###INIT FUNCTION
     def initConfiguration(self):
         if not os.path.exists("miscellaneous\\configuration.txt"):
-            initString="slicer_value = 100\nDetection_range=0\nalgo=3\nboot=0"
+            initString="slicer_value = -100\nDetection_range=0\nalgo=3\nboot=0"
             with open("miscellaneous\\configuration.txt", "a") as file:
                     file.write(initString)
                     file.close()
@@ -212,6 +214,8 @@ class IDS_Window(QMainWindow):
                     splited=item.replace("\n","").strip().split("=")
                     if "slicer_value" in splited[0]:
                         self.slicer_value=int(splited[1])
+                        global alertThreshold
+                        alertThreshold=abs(int(splited[1]))
                     elif "Detection_range" in splited[0]:
                         self.Detection_range=int(splited[1])
                     elif "algo" in splited[0]:
@@ -357,26 +361,28 @@ class IDS_Window(QMainWindow):
             type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
             type_others=["Infilteration","Bot"]
             for label, predict in data:
-                if label in type_bruteforce:
-                    self.ui.currentEvent_textBrower.append(f"BruteForce Prediction:{predict}")
-                elif label in type_ddos or label in type_dos:
-                    self.ui.currentEvent_textBrower.append(f"DDOS Prediction:{predict}")
-                elif label in type_webBased:
-                    self.ui.currentEvent_textBrower.append(f"WebBased Prediction:{predict}")
-                elif label in type_others:
-                    self.ui.currentEvent_textBrower.append(f"Others Prediction:{predict}")
-                if label not in "Benign":
-                    eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{label},Prediction,Probability:{predict},None,None,None,None"
-                    self.eventList.append(eventStr)
-                    self.eventModel.clear()
-                    for index,item in enumerate(self.eventList):
-                        split=str(item).split(",")
-                        for i in range(0,8):
-                            self.eventModel.setItem(index,i,QStandardItem(split[i]))
-                    if not os.path.exists("miscellaneous\\userDefineRule.txt"):
-                        with open("miscellaneous\\userDefineRule.txt","w") as file:
-                            file.write(eventStr)
-                            file.close()
+                if float(predict) >= alertThreshold:
+                    if label in type_bruteforce:
+                        self.ui.currentEvent_textBrower.append(f"BruteForce type: {label}  {predict}%")
+                    elif label in type_ddos or label in type_dos:
+                        self.ui.currentEvent_textBrower.append(f"DDOS type: {label}  {predict}%")
+                    elif label in type_webBased:
+                        self.ui.currentEvent_textBrower.append(f"WebBased type: {label}  {predict}%")
+                    elif label in type_others:
+                        self.ui.currentEvent_textBrower.append(f"Others type: {label}  {predict}%")
+                    if label not in "Benign":
+                        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{label},Prediction,Probability:{predict},None,None,None,None"
+                        self.eventList.append(eventStr)
+                        self.eventModel.clear()
+                        self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
+                        for index,item in enumerate(self.eventList):
+                            split=str(item).split(",")
+                            for i in range(0,8):
+                                self.eventModel.setItem(index,i,QStandardItem(split[i]))
+                        if not os.path.exists("miscellaneous\\userDefineRule.txt"):
+                            with open("miscellaneous\\userDefineRule.txt","w") as file:
+                                file.write(eventStr)
+                                file.close()
         except Exception as e:
             Logging.logException(str(e))
 ###EVENT FUNCTIONS
@@ -452,6 +458,15 @@ class IDS_Window(QMainWindow):
         value = self.ui.detectionLevel_slicer.value()
         self.changeVariableOnTxt("slicer_value = {}".format(self.slicer_value),"slicer_value = {}".format(value))
         self.slicer_value=value
+        global alertThreshold
+        alertThreshold=abs(self.slicer_value)
+
+    def updateAlgoComboBox(self):
+        index=self.ui.algorithms_comboBox.currentIndex()
+        self.changeVariableOnTxt("algo={}".format(self.algoIndex),"algo={}".format(index))
+        global currentAlgo
+        currentAlgo=self.ui.algorithms_comboBox.currentText()
+        print(currentAlgo)
 
     def changeVariableOnTxt(self,ori,replace):
         with open("miscellaneous\\configuration.txt", "r") as file:
@@ -499,12 +514,12 @@ class IDS_Window(QMainWindow):
         #         if filename.endswith('.csv'):
         #             pds = os.path.join(dirname, filename)
         #             Datapreprocess(pds).sampleCleanEachLabelEqualy(percentage=0.3)
-        Alert("Regenerating the prediction model","Please wait the movement until the process done").generateDesktopNotification()
+        Alert("Regenerating the prediction model","Please allow program execution until the complete notification show").generateDesktopNotification()
         retrain=Learning()
         retrain.getSpecificDF()
         retrain.splitTrainTestData()
         retrain.overwriteAllModel()
-        Alert("Regenerating completed","").generateDesktopNotification()
+        Alert("Successful generate the model","").generateDesktopNotification()
 
     def starupOnBoot():
         pth = os.path.dirname(os.path.realpath(__file__))
@@ -703,13 +718,13 @@ class sniffThread(QThread):
                         ruleTrigger=Rule("udp", src_ip, udp_srcport, dst_ip, udp_dstport).checkRules(
                             payload
                         )
-                        if ruleTrigger !=None:
+                        if ruleTrigger is not None:
                             self.ruleSig.emit(ruleTrigger)
             counter+=1
             try:
                 if counter == 100:
                     counter = 0
-                    predictionItem=Detection.prediction()
+                    predictionItem=Detection.prediction(algo='knn',classes=pred.x_train,threshold=alertThreshold)
                     if predictionItem is not None:
                         zipItem=zip(predictionItem[0],predictionItem[1])
                         self.predictionSig.emit(zipItem)
