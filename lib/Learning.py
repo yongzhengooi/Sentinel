@@ -87,7 +87,7 @@ class Learning:
         )
         label = encoded.transform(label)
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
-            feature, label, test_size=0.2, shuffle=True,stratify=label,random_state=state
+            feature.values, label, test_size=0.2, shuffle=True,stratify=label,random_state=state
         )
 
     def overwriteModel(self,classifier):
@@ -215,12 +215,12 @@ class Learning:
         self.crossValidate(AdaBoostClassifier(), self.x_train, self.y_train)
 
 
-    def predictLabel(self,feature, selection="knn"):
-        pred = Learning()
-        pred.getSpecificDF()
-        pred.splitTrainTestData()
+    def predictLabel(self,classXtrain,feature, selection="knn"):
+        # pred = Learning()
+        # pred.getSpecificDF()
+        # pred.splitTrainTestData()
         scalar=StandardScaler()
-        scalar.fit(pred.x_train)
+        scalar.fit(classXtrain)
         feature[1:]=scalar.transform(feature[1:])
         if selection == "randomForest":
             return self.model_randomForest(feature)
@@ -231,5 +231,5 @@ class Learning:
         elif selection == "knn":
             return self.model_KNN(feature)
         elif selection == "naiveBayes":
-            return pred.model_naiveBayes(feature)
+            return self.model_naiveBayes(feature)
 

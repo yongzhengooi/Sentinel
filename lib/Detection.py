@@ -9,6 +9,7 @@ import scapy.all as scapy
 import shutil
 import numpy as np
 import asyncio
+import threading
 import re
 from multiprocessing import Process
 from lib.Rule import *
@@ -36,43 +37,43 @@ class Detection:
         print("Start generate flow")
         os.system(command)
 
-    # def starSniffing(interface="Wi-Fi"):
-    #     today = str(datetime.date.today().strftime("%Y-%m-%d"))
-    #     counter = 0
-    #     capture = pyshark.LiveCapture(
-    #         interface,
-    #         output_file="data\\{}.pcap".format(today),
-    #     )
-    #     for packet in capture:
-    #         if "IP" in packet:
-    #             src_ip = packet["IP"].src
-    #             dst_ip = packet["IP"].dst
-    #             Rule.checkBannedIP(src_ip, dst_ip)
-    #             # print(packet)
-    #             if packet.transport_layer == "TCP":
-    #                 src_port = packet["TCP"].srcport
-    #                 dst_port = packet["TCP"].dstport
-    #                 #print("{} {} -> {} {} ".format(src_ip, src_port, dst_ip, dst_port))
-    #                 if "segment_data" in dir(packet["TCP"]):
-    #                     payload = packet["TCP"].segment_data
-    #                     payload = str(payload).replace(":", " ")
-    #                     # print(payload)
-    #                     Rule("tcp", src_ip, src_port, dst_ip, dst_port).checkRules(
-    #                         payload
-    #                     )
-    #             if packet.transport_layer == "UDP":
-    #                 if "segment_data" in dir(packet["UDP"]):
-    #                     payload = packet["UDP"].segment_data
-    #                     payload = str(payload).replace(":", " ")
-    #                     Rule("udp", src_ip, src_port, dst_ip, dst_port).checkRules(
-    #                         payload
-    #                     )
-    #         counter += 1
-    #         if counter == 100:
-    #             Detection.prediction()
-    #             counter = 0
+    def starSniffing(interface="Wi-Fi"):
+        today = str(datetime.date.today().strftime("%Y-%m-%d"))
+        counter = 0
+        capture = pyshark.LiveCapture(
+            interface,
+            output_file="data\\{}.pcap".format(today),
+        )
+        for packet in capture:
+            if "IP" in packet:
+                src_ip = packet["IP"].src
+                dst_ip = packet["IP"].dst
+                Rule.checkBannedIP(src_ip, dst_ip)
+                # print(packet)
+                if packet.transport_layer == "TCP":
+                    src_port = packet["TCP"].srcport
+                    dst_port = packet["TCP"].dstport
+                    print("{} {} -> {} {} ".format(src_ip, src_port, dst_ip, dst_port))
+                    if "segment_data" in dir(packet["TCP"]):
+                        payload = packet["TCP"].segment_data
+                        payload = str(payload).replace(":", " ")
+                        # print(payload)
+                        Rule("tcp", src_ip, src_port, dst_ip, dst_port).checkRules(
+                            payload
+                        )
+                if packet.transport_layer == "UDP":
+                    if "segment_data" in dir(packet["UDP"]):
+                        payload = packet["UDP"].segment_data
+                        payload = str(payload).replace(":", " ")
+                        Rule("udp", src_ip, src_port, dst_ip, dst_port).checkRules(
+                            payload
+                        )
+            counter += 1
+            if counter == 100:
+                Detection.prediction()
+                counter = 0
     
-    def prediction():
+    def prediction(algo="knn",classes=Learning().x_train,threshold=30):
         type_bruteforce = ["FTP-BruteForce", "SSH-Bruteforce"]
         type_dos = [
             "DoS attacks-GoldenEye",
@@ -106,13 +107,14 @@ class Detection:
                     content.append(pac)
         except FileNotFoundError:
             Logging.logException("cic_{}.txt not found".format(today))
+            return
         global latestIndex
         global previousContentSize
         previousCheck = False
         if len(content) > previousContentSize:
             previousContentSize = len(content)
             previousCheck = True
-        if len(content) > 2 and previousCheck:
+        if len(content) > 1 and previousCheck:
             df = pd.DataFrame(content)
             df.columns = df.iloc[0]
             toDropList = [
@@ -125,7 +127,6 @@ class Detection:
             ]
             df.drop(toDropList, inplace=True, axis=1)
             df = df[latestIndex:]
-            latestIndex += len(content)
             # filter out the best 11 feature
             bestFeature = [
                 "dst_port",
@@ -139,7 +140,7 @@ class Detection:
                 "pkt_len_mean",
                 "bwd_pkt_len_min",
                 "pkt_len_min",
-            ]
+                ]
             selectedDf = df[bestFeature]
             allpacket = []
 
@@ -165,9 +166,7 @@ class Detection:
             )
             for index, feature in selectedDf.iterrows():
                 allpacket.append(
-                    np.array(
-                        [
-                            float(feature[0]),
+                            [float(feature[0]),
                             float(feature[1]),
                             float(feature[2]),
                             float(feature[3]),
@@ -177,55 +176,58 @@ class Detection:
                             float(feature[7]),
                             float(feature[8]),
                             float(feature[9]),
-                            float(feature[10]),
-                        ]
+                            float(feature[10])]
                     )
-                )
             try: 
-                prediction, prob = Learning().predictLabel(
-                    np.array(allpacket), selection="knn"
-                )
-                # generate alert based on prediction
-                print(encoded.inverse_transform(prediction))
-                newProb = []
-                for item in prob:
-                    newProb.append(round(max(item) * 100, 2))
-                checkingType = zip(encoded.inverse_transform(prediction), newProb)
-                for label, probability in checkingType:
-                    if label in type_bruteforce:
-                        Alert(
-                            "Bruteforce type attemped",
-                            # "Source: {} Dst: {} Port: {}".format(src_ip, dst_ip, dst_port),
-                            "{}Detected \n Probability of predicted attack :{}".format(
-                                label, probability
-                            ),
-                        ).generateDesktopNotification()
-                    elif label in type_dos or label in type_ddos:
-                        Alert(
-                            "Dos/DDOS type attemped",
-                            # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
-                            "{}Detected \n Probability of predicted attack :{}".format(
-                                label, probability
-                            ),
-                        ).generateDesktopNotification()
-                    elif label in type_webBased:
-                        Alert(
-                            "Web attack type attemped",
-                            # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
-                            "{}Detected \n Probability of predicted attack :{}".format(
-                                label, probability
-                            ),
-                        ).generateDesktopNotification()
-                    elif label in type_others:
-                        Alert(
-                            "Type others attemped",
-                            # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
-                            "{}Detected \n Probability of predicted attack :{}".format(
-                                label, probability
-                            ),
-                        ).generateDesktopNotification()
-            except Exception:
-                Logging.logException(Exception)
+                if allpacket is not None:
+                    if len(allpacket) >0:
+                        prediction, prob = Learning().predictLabel(
+                            # np.array(allpacket).reshape(1,-1), selection=algo
+                            classes,np.array(allpacket),selection=algo
+                        )
+                        latestIndex = previousContentSize
+                        # generate alert based on prediction
+                        newProb = []
+                        for item in prob:
+                            newProb.append(round(max(item) * 100, 2))
+                        checkingType = zip(encoded.inverse_transform(prediction), newProb)
+                        for label, probability in checkingType:
+                            if float(probability) >= threshold:
+                                if label in type_bruteforce:
+                                    Alert(
+                                        "Bruteforce type attemped",
+                                        # "Source: {} Dst: {} Port: {}".format(src_ip, dst_ip, dst_port),
+                                        "{} Detected \n Probability of predicted attack :{}".format(
+                                            label, probability
+                                        ),
+                                    ).generateDesktopNotification()
+                                elif label in type_dos or label in type_ddos:
+                                    Alert(
+                                        "Dos/DDOS type attemped",
+                                        # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
+                                        "{} Detected \n Probability of predicted attack :{}".format(
+                                            label, probability
+                                        ),
+                                    ).generateDesktopNotification()
+                                elif label in type_webBased:
+                                    Alert(
+                                        "Web attack type attemped",
+                                        # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
+                                        "{} Detected \n Probability of predicted attack :{}".format(
+                                            label, probability
+                                        ),
+                                    ).generateDesktopNotification()
+                                elif label in type_others:
+                                    Alert(
+                                        "Type others attemped",
+                                        # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
+                                        "{} Detected \n Probability of predicted attack :{}".format(
+                                            label, probability
+                                        ),
+                                    ).generateDesktopNotification()
+                        return [encoded.inverse_transform(prediction),newProb]
+            except Exception as e:
+                Logging.logException(str(e))
 
 
 # class PayloadCollector(NFPlugin):
@@ -249,5 +251,4 @@ p2 = "2E 63 6C 61 73 73 0D 0A 75 73 65 72 2D 61 67 65 6E 74 3A 20 6A 61 76 61 2F
 # Rule("tcp", "190.144.160", "12",str(scapy.get_if_addr(scapy.conf.iface)) , "79").checkRules(p.replace(" ",""))
 # Rule("tcp", str(scapy.get_if_addr(scapy.conf.iface)), "2589","190.144.160" , "80").checkRules(p2)
 # Rule("tcp", "12.41.211.1","2589","127.0.0.1" , "25").checkRules(p2)
-
     
