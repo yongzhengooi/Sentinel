@@ -118,9 +118,6 @@ class Detection:
             df = pd.DataFrame(content)
             df.columns = df.iloc[0]
             toDropList = [
-                "src_ip",
-                "dst_ip",
-                "src_port",
                 "timestamp",
                 "src_mac",
                 "dst_mac",
@@ -140,10 +137,14 @@ class Detection:
                 "pkt_len_mean",
                 "bwd_pkt_len_min",
                 "pkt_len_min",
+                "src_ip",
+                "src_port",
+                "dst_ip",
+                "dst_port"
                 ]
             selectedDf = df[bestFeature]
             allpacket = []
-
+            ipPacket=[]
             le = LabelEncoder()
             encoded = le.fit(
                 [
@@ -166,18 +167,9 @@ class Detection:
             )
             for index, feature in selectedDf.iterrows():
                 allpacket.append(
-                            [float(feature[0]),
-                            float(feature[1]),
-                            float(feature[2]),
-                            float(feature[3]),
-                            float(feature[4]),
-                            float(feature[5]),
-                            float(feature[6]),
-                            float(feature[7]),
-                            float(feature[8]),
-                            float(feature[9]),
-                            float(feature[10])]
+                            [float(feature[i]) for i in range(0,11)]
                     )
+                ipPacket.append([feature[i] for i in range (11,15)])
             try: 
                 if allpacket is not None:
                     if len(allpacket) >1:
@@ -229,7 +221,7 @@ class Detection:
                                             label, probability
                                         ),
                                     ).generateDesktopNotification()
-                        return [encoded.inverse_transform(prediction),newProb]
+                        return [encoded.inverse_transform(prediction),newProb],ipPacket
             except Exception as e:
                 Logging.logException(str(e))
 

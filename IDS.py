@@ -311,20 +311,21 @@ class IDS_Window(QMainWindow):
             type_ddos=["DDoS attacks-LOIC-HTTP","DDOS attack-LOIC-UDP","DDOS attack-HOIC"]
             type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
             type_others=["Infilteration","Bot"]
-            for label, predict in item:
-                if label in type_bruteforce:
-                    self.bruteForce +=1
-                    self.malicious +=1
-                elif label in type_ddos or label in type_dos:
-                    self.ddos+=1
-                    self.malicious+=1
-                elif label in type_webBased:
-                    self.webBase+=1
-                    self.malicious+=1
-                elif label in type_others:
-                    self.others+=1
-                    self.malicious+=1
-                else:
+            for label, predict, detail in item:
+                if float(predict) >= alertThreshold:
+                    if label in type_bruteforce:
+                        self.bruteForce +=1
+                        self.malicious +=1
+                    elif label in type_ddos or label in type_dos:
+                        self.ddos+=1
+                        self.malicious+=1
+                    elif label in type_webBased:
+                        self.webBase+=1
+                        self.malicious+=1
+                    elif label in type_others:
+                        self.others+=1
+                        self.malicious+=1
+                if label == "Benign":
                     self.benign+=1
             #attacktype]
             data={"Benign":self.benign,"BruteForce":self.bruteForce,"DDOS":self.ddos,"Web based":self.webBase,"Others":self.others}
@@ -360,8 +361,9 @@ class IDS_Window(QMainWindow):
             type_ddos=["DDoS attacks-LOIC-HTTP","DDOS attack-LOIC-UDP","DDOS attack-HOIC"]
             type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
             type_others=["Infilteration","Bot"]
-            for label, predict in data:
-                if float(predict) >= alertThreshold:
+            for label, predict, detail in data:
+                currentIP_Detail=detail.split(",")
+                if float(predict) >= alertThreshold and ("0.0.0.0" not in currentIP_Detail[0] or "255.255.255.255" not in currentIP_Detail[2]) :
                     if label in type_bruteforce:
                         self.ui.currentEvent_textBrower.append(f"BruteForce attempted: {label}  {predict}%")
                     elif label in type_ddos or label in type_dos:
@@ -371,7 +373,7 @@ class IDS_Window(QMainWindow):
                     elif label in type_others:
                         self.ui.currentEvent_textBrower.append(f"Others attempted: {label}  {predict}%")
                     if label not in "Benign":
-                        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{label},Prediction,Probability:{predict},None,None,None,None"
+                        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{label},Prediction,Probability: {predict} %,{currentIP_Detail[0]},{currentIP_Detail[1]},{currentIP_Detail[2]},{currentIP_Detail[3]}"
                         self.eventList.append(eventStr)
                         self.eventModel.clear()
                         self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
@@ -466,7 +468,6 @@ class IDS_Window(QMainWindow):
         self.changeVariableOnTxt("algo={}".format(self.algoIndex),"algo={}".format(index))
         global currentAlgo
         currentAlgo=self.ui.algorithms_comboBox.currentText()
-        print(currentAlgo)
 
     def changeVariableOnTxt(self,ori,replace):
         with open("miscellaneous\\configuration.txt", "r") as file:
@@ -705,7 +706,7 @@ class sniffThread(QThread):
                         ruleTrigger=Rule("tcp", src_ip, src_port, dst_ip, dst_port).checkRules(
                             payload
                         )
-                        if ruleTrigger !=None:
+                        if ruleTrigger is not None:
                             self.ruleSig.emit(ruleTrigger)
                 if packet.transport_layer == "UDP":
                     udp_srcport=packet["UDP"].srcport
@@ -722,13 +723,17 @@ class sniffThread(QThread):
                             self.ruleSig.emit(ruleTrigger)
             counter+=1
             try:
-                if counter == 100:
+                if counter == 50:
                     counter = 0
-                    predictionItem=Detection.prediction(algo=currentAlgo,classes=pred.x_train,threshold=alertThreshold)
-                    if predictionItem is not None:
-                        zipItem=zip(predictionItem[0],predictionItem[1])
+                    predictionItem,currentPacketDetail=Detection.prediction(algo=currentAlgo,classes=pred.x_train,threshold=alertThreshold)
+                    packetDetail = []
+                    if currentPacketDetail is not None and predictionItem is not None:
+                        for index,item in enumerate(currentPacketDetail):
+                            packetDetail.append(str(currentPacketDetail[index]).replace("'","").replace("[","").replace("]",""))
+                    # if predictionItem is not None:
+                        zipItem=zip(predictionItem[0],predictionItem[1],packetDetail)
                         self.predictionSig.emit(zipItem)
-                        zipItem2=zip(predictionItem[0],predictionItem[1])
+                        zipItem2=zip(predictionItem[0],predictionItem[1],packetDetail)
                         self.updateEventSig.emit(zipItem2)
             except Exception as e:
                 Logging.logException(str(e))
