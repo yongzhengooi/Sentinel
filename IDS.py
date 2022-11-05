@@ -363,13 +363,13 @@ class IDS_Window(QMainWindow):
             for label, predict in data:
                 if float(predict) >= alertThreshold:
                     if label in type_bruteforce:
-                        self.ui.currentEvent_textBrower.append(f"BruteForce type: {label}  {predict}%")
+                        self.ui.currentEvent_textBrower.append(f"BruteForce attempted: {label}  {predict}%")
                     elif label in type_ddos or label in type_dos:
-                        self.ui.currentEvent_textBrower.append(f"DDOS type: {label}  {predict}%")
+                        self.ui.currentEvent_textBrower.append(f"DDOS attempted: {label}  {predict}%")
                     elif label in type_webBased:
-                        self.ui.currentEvent_textBrower.append(f"WebBased type: {label}  {predict}%")
+                        self.ui.currentEvent_textBrower.append(f"WebBased attempted: {label}  {predict}%")
                     elif label in type_others:
-                        self.ui.currentEvent_textBrower.append(f"Others type: {label}  {predict}%")
+                        self.ui.currentEvent_textBrower.append(f"Others attempted: {label}  {predict}%")
                     if label not in "Benign":
                         eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{label},Prediction,Probability:{predict},None,None,None,None"
                         self.eventList.append(eventStr)
@@ -724,7 +724,7 @@ class sniffThread(QThread):
             try:
                 if counter == 100:
                     counter = 0
-                    predictionItem=Detection.prediction(algo='knn',classes=pred.x_train,threshold=alertThreshold)
+                    predictionItem=Detection.prediction(algo=currentAlgo,classes=pred.x_train,threshold=alertThreshold)
                     if predictionItem is not None:
                         zipItem=zip(predictionItem[0],predictionItem[1])
                         self.predictionSig.emit(zipItem)

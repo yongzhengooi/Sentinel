@@ -5,7 +5,6 @@ start /B python IDS.py
 timeout 30 > nul
 echo "Activating machine Learning assist tool..."
 timeout 5 > nul
-echo "This may take up to a minute to finish setup"
 cd data
 for /f "skip=1" %%x in ('wmic os get localdatetime') do if not defined MyDate set MyDate=%%x
 for /f %%x in ('wmic path win32_localtime get /format:list ^| findstr "="') do set %%x

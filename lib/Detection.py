@@ -180,7 +180,7 @@ class Detection:
                     )
             try: 
                 if allpacket is not None:
-                    if len(allpacket) >0:
+                    if len(allpacket) >1:
                         prediction, prob = Learning().predictLabel(
                             # np.array(allpacket).reshape(1,-1), selection=algo
                             classes,np.array(allpacket),selection=algo
@@ -191,6 +191,8 @@ class Detection:
                         for item in prob:
                             newProb.append(round(max(item) * 100, 2))
                         checkingType = zip(encoded.inverse_transform(prediction), newProb)
+
+                        currentDDOS_count=0
                         for label, probability in checkingType:
                             if float(probability) >= threshold:
                                 if label in type_bruteforce:
@@ -202,13 +204,15 @@ class Detection:
                                         ),
                                     ).generateDesktopNotification()
                                 elif label in type_dos or label in type_ddos:
-                                    Alert(
-                                        "Dos/DDOS type attemped",
-                                        # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
-                                        "{} Detected \n Probability of predicted attack :{}".format(
-                                            label, probability
-                                        ),
-                                    ).generateDesktopNotification()
+                                    if currentDDOS_count > 5 or currentDDOS_count==0:
+                                        Alert(
+                                            "Dos/DDOS type attemped",
+                                            # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
+                                            "{} Detected \n Probability of predicted attack :{}".format(
+                                                label, probability
+                                            ),
+                                        ).generateDesktopNotification()
+                                    currentDDOS_count+=1
                                 elif label in type_webBased:
                                     Alert(
                                         "Web attack type attemped",
