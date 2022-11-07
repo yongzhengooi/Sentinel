@@ -247,28 +247,31 @@ class IDS_Window(QMainWindow):
         try:
             with open("miscellaneous\\userDefineRule.txt","r") as file:
                 data = file.readlines()
-                for item in data:
-                    self.collectedRule.append(item.replace("\n",""))
-                for index,item in enumerate(self.collectedRule):
-                    split=str(item).split(",")
-                    for i in range(0,5):
-                        self.model.setItem(index,i,QStandardItem(split[i]))
+                if data is not None or data !="":
+                    for item in data:
+                        self.collectedRule.append(item.replace("\n",""))
+                    for index,item in enumerate(self.collectedRule):
+                        split=str(item).split(",")
+                        for i in range(0,5):
+                            self.model.setItem(index,i,QStandardItem(split[i]))
                 file.close()
             with open("miscellaneous\\email.txt","r") as file:
                 emailItem=file.readlines()
-                for item in emailItem:
-                    self.emailList.append(item.replace("\n",""))
-                for i in self.emailList:
-                    self.emailModel.appendRow(QStandardItem(i))
+                if emailItem is not None or emailItem !="":
+                    for item in emailItem:
+                        self.emailList.append(item.replace("\n",""))
+                    for i in self.emailList:
+                        self.emailModel.appendRow(QStandardItem(i))
                 file.close
             with open("miscellaneous\\event.txt","r") as file:
                 eventItem=file.readlines()
-                for item in eventItem:
-                    self.eventList.append(item.replace("\n",""))
-                for index,item in enumerate(self.eventList):
-                    split=str(item).split(",")
-                    for i in range(0,8):
-                        self.eventModel.setItem(index,i,QStandardItem(split[i]))
+                if eventItem is not None or eventItem !="":
+                    for item in eventItem:
+                        self.eventList.append(item.replace("\n",""))
+                    for index,item in enumerate(self.eventList):
+                        split=str(item).split(",")
+                        for i in range(0,8):
+                            self.eventModel.setItem(index,i,QStandardItem(split[i]))
                 file.close
         except FileNotFoundError as e:
             Logging.logException(str(e))
@@ -307,7 +310,11 @@ class IDS_Window(QMainWindow):
 ###DASHBOARD FUNCTIONS
     def updateGraph(self,item):
             type_bruteforce=["FTP-BruteForce","SSH-Bruteforce"]
-            type_dos=["DoS attacks-GoldenEye","DoS attacks-Slowloris","DoS attacks-SlowHTTPTest","DoS attacks-Hulk"]
+            type_dos=[
+            # "DoS attacks-GoldenEye",
+            "DoS attacks-Slowloris",
+            "DoS attacks-SlowHTTPTest",
+            "DoS attacks-Hulk"]
             type_ddos=["DDoS attacks-LOIC-HTTP","DDOS attack-LOIC-UDP","DDOS attack-HOIC"]
             type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
             type_others=["Infilteration","Bot"]
@@ -357,7 +364,11 @@ class IDS_Window(QMainWindow):
     def updateEvent(self,data):
         try:
             type_bruteforce=["FTP-BruteForce","SSH-Bruteforce"]
-            type_dos=["DoS attacks-GoldenEye","DoS attacks-Slowloris","DoS attacks-SlowHTTPTest","DoS attacks-Hulk"]
+            type_dos=[
+            # "DoS attacks-GoldenEye",
+            "DoS attacks-Slowloris",
+            "DoS attacks-SlowHTTPTest",
+            "DoS attacks-Hulk"]
             type_ddos=["DDoS attacks-LOIC-HTTP","DDOS attack-LOIC-UDP","DDOS attack-HOIC"]
             type_webBased=["Brute Force -Web","Brute Force -XSS","SQL Injection"]
             type_others=["Infilteration","Bot"]
@@ -381,8 +392,8 @@ class IDS_Window(QMainWindow):
                             split=str(item).split(",")
                             for i in range(0,8):
                                 self.eventModel.setItem(index,i,QStandardItem(split[i]))
-                        if not os.path.exists("miscellaneous\\userDefineRule.txt"):
-                            with open("miscellaneous\\userDefineRule.txt","w") as file:
+                        if not os.path.exists("miscellaneous\\event.txt"):
+                            with open("miscellaneous\\event.txt","w") as file:
                                 file.write(eventStr)
                                 file.close()
         except Exception as e:
@@ -395,14 +406,17 @@ class IDS_Window(QMainWindow):
         #data[3]=dstport
         #data[4]=classtype
         #data[5]=message
-        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{data[4]},{data[5]},{data[1]},{data[0]},{data[1]},{data[2]},{data[3]}"
+        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{data[4]},Rules,{data[5]},{data[0]},{data[1]},{data[2]},{data[3]}"
+        self.eventList.append(eventStr)
+        self.eventModel.clear()
+        self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
         self.ui.currentEvent_textBrower.append(str(data[4]))
+        for index,item in enumerate(self.eventList):
+            split=str(item).split(",")
+            for i in range(0,8):
+                self.eventModel.setItem(index,i,QStandardItem(split[i]))
         if not os.path.exists("miscellaneous\\event.txt"):
             with open("miscellaneous\\event.txt","w") as file:
-                file.write(eventStr)
-                file.close()
-        else:
-            with open("miscellaneous\\event.txt","a") as file:
                 file.write(eventStr)
                 file.close()
 
