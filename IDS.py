@@ -61,7 +61,20 @@ class IDS_Window(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.trigger=True
-    
+        #Initialize the rule 
+        self.rule=rule_thread()
+        self.ruleThread=QThread()
+        self.ruleThread.started.connect(self.rule.run)
+        self.rule.updateRuleEvent.connect(self.updateRuleEvent)
+        self.rule.currentRuleSig.connect(self.updateLivePacket)
+        self.rule.moveToThread(self.ruleThread)
+        #Initialize the prediction
+        self.predict=predict_thread()
+        self.predictThread=QThread()
+        self.predictThread.started.connect(self.predict.run)
+        self.predict.predictionSig.connect(self.updateGraph)
+        self.predict.updateEventSig.connect(self.updateEvent)
+        self.predict.moveToThread(self.predictThread)
         #Variable init
         self.slicer_value=-100
         self.Detection_range=0
@@ -291,21 +304,38 @@ class IDS_Window(QMainWindow):
             self.ui.stackedWidget.setCurrentIndex(4)
         elif selectedPage == "Switch":
             if self.trigger:
-                self.thread[1] = sniffThread(parent=None)
+                Alert("Starting","Initialising the sniffer").generateDesktopNotification()
+                # self.thread[1] = sniffThread(parent=None)
+                # self.thread[2] = ruleProcessThread(parent=None)
                 # self.thread[1].pause=False
-                if not self.thread[1].is_running:
-                    self.thread[1].start()
-                self.thread[1].notifyUser(self.trigger)
-                self.thread[1].sig.connect(self.updateLivePacket)
-                self.thread[1].updateEventSig.connect(self.updateEvent)
-                self.thread[1].predictionSig.connect(self.updateGraph)
-                self.thread[1].icmpSig.connect(self.updateEventTextBrower)
-                self.thread[1].ruleSig.connect(self.updateRuleEvent)
+                # if not self.thread[1].is_running:
+                self.predictThread.start()
+                self.ruleThread.start()
+                #     self.thread[2].start()
+
+                # self.thread[1].notifyUser(self.trigger)
+                # self.thread[1].sig.connect(self.updateLivePacket)
+
+                # self.thread[2].updateEventSig.connect(self.updateEvent)
+                # self.thread[2].predictionSig.connect(self.updateGraph)
+            
+                # self.thread[1].ruleSig.connect(self.updateRuleEvent)
+
+                # if not self.sniff.is_running:
+                #     self.threadpool.start(sniff)
+                #     self.thread[2] = ruleProcessThread(parent=None)
+                #     self.thread[2].start()
+                # self.sniff.ruleSignal.currentRuleSig.connect(self.updateLivePacket)
+                # self.sniff.ruleSignal.updateRuleEvent.connect(self.updateRuleEvent)
+                # self.thread[2].updateEventSig.connect(self.updateEvent)
+                # self.thread[2].predictionSig.connect(self.updateGraph)
+                
                 self.trigger = False
             else:
-                self.thread[1].notifyUser(self.trigger)
+                # self.thread[1].notifyUser(self.trigger)
                 # self.thread[1].pause=True
-                self.thread[1].stop()
+                self.sniff.pause()
+                # self.thread[1].stop()
                 self.trigger = True
 ###DASHBOARD FUNCTIONS
     def updateGraph(self,item):
@@ -383,8 +413,8 @@ class IDS_Window(QMainWindow):
                         self.ui.currentEvent_textBrower.append(f"WebBased attempted: {label}  {predict}%")
                     elif label in type_others:
                         self.ui.currentEvent_textBrower.append(f"Others attempted: {label}  {predict}%")
-                    if label not in "Benign":
-                        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{label},Prediction,Probability: {predict} %,{currentIP_Detail[0]},{currentIP_Detail[1]},{currentIP_Detail[2]},{currentIP_Detail[3]}"
+                    if label not in "Benign" and label not in "DoS attacks-GoldenEye":
+                        eventStr=f"{currentIP_Detail[4]},{label},Prediction,Probability: {predict} %,{currentIP_Detail[0]},{currentIP_Detail[1]},{currentIP_Detail[2]},{currentIP_Detail[3]}"
                         self.eventList.append(eventStr)
                         self.eventModel.clear()
                         self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
@@ -669,21 +699,14 @@ class RuleCustomProxyModel(QSortFilterProxyModel):
         return True
 
 
-###THREADING FOR SNIFF FUNCTION
-class sniffThread(QThread):
-    sig = pyqtSignal(str)
-    icmpSig =pyqtSignal(str)
-    predictionSig = pyqtSignal(zip)
-    updateEventSig = pyqtSignal(zip)
-    ruleSig=pyqtSignal(list)
+###THREADING FOR SNIFF AND PREDICT  FUNCTION
+class rule_thread(QObject):
+    currentRuleSig=pyqtSignal(str)
+    updateRuleEvent=pyqtSignal(list)
+    def __init__(self):
+        super().__init__()
 
-    pause=False
-    loop=None
-    def __init__(self,parent=None):
-        super(sniffThread,self).__init__(parent)
-        self.is_running = False
-        self.pause=False
-        
+    @pyqtSlot()
     def run(self):
         try:
             self.is_running = True
@@ -691,13 +714,12 @@ class sniffThread(QThread):
             # self.loop.run_forever()
             asyncio.set_event_loop(loop=self.loop)
             nest_asyncio.apply(loop=self.loop)
-            self.loop.create_task(self.testSniffing())
+            self.loop.create_task(self.sniff())
             # asyncio.run_coroutine_threadsafe(self.testSniffing(),self.loop)
-            
         except Exception as e:
             Logging.logException(str(e))
-    
-    def testSniffing(self):
+
+    def sniff(self):
         today = str(datetime.today().strftime("%Y-%m-%d"))
         counter = 0
         capture = pyshark.LiveCapture(
@@ -712,7 +734,7 @@ class sniffThread(QThread):
                 if packet.transport_layer == "TCP":
                     src_port = packet["TCP"].srcport
                     dst_port = packet["TCP"].dstport
-                    self.sig.emit("[TCP] {}       \t{}\t-> {}\t{}".format(src_ip, src_port, dst_ip, dst_port))
+                    self.currentRuleSig.emit("[TCP] {}       \t{}\t-> {}\t{}".format(src_ip, src_port, dst_ip, dst_port))
                     if "segment_data" in dir(packet["TCP"]):
                         payload = packet["TCP"].segment_data
                         payload = str(payload).replace(":", " ")
@@ -721,11 +743,11 @@ class sniffThread(QThread):
                             payload
                         )
                         if ruleTrigger is not None:
-                            self.ruleSig.emit(ruleTrigger)
+                            self.updateRuleEvent.emit(ruleTrigger)
                 if packet.transport_layer == "UDP":
                     udp_srcport=packet["UDP"].srcport
                     udp_dstport=packet["UDP"].dstport
-                    self.sig.emit("[UDP] {}       \t{}\t-> {}\t{}".format(src_ip, udp_srcport, dst_ip, udp_dstport))
+                    self.currentRuleSig.emit("[UDP] {}       \t{}\t-> {}\t{}".format(src_ip, udp_srcport, dst_ip, udp_dstport))
                     if "segment_data" in dir(packet["UDP"]):
                         payload = packet["UDP"].segment_data
                         payload = str(payload).replace(":", " ")
@@ -734,47 +756,32 @@ class sniffThread(QThread):
                             payload
                         )
                         if ruleTrigger is not None:
-                            self.ruleSig.emit(ruleTrigger)
-            counter+=1
+                            self.updateRuleEvent.emit(ruleTrigger)
+
+class predict_thread(QObject):
+    predictionSig=pyqtSignal(zip)
+    updateEventSig=pyqtSignal(zip)
+    is_running=False
+    def __init__(self):
+        super().__init__()
+
+    @pyqtSlot()
+    def run(self):
+        self.is_running=True
+        while True:
             try:
-                if counter == 50:
-                    counter = 0
-                    predictionItem,currentPacketDetail=Detection.prediction(algo=currentAlgo,classes=pred.x_train,threshold=alertThreshold)
-                    packetDetail = []
-                    if currentPacketDetail is not None and predictionItem is not None:
-                        for index,item in enumerate(currentPacketDetail):
-                            packetDetail.append(str(currentPacketDetail[index]).replace("'","").replace("[","").replace("]",""))
-                    # if predictionItem is not None:
-                        zipItem=zip(predictionItem[0],predictionItem[1],packetDetail)
-                        self.predictionSig.emit(zipItem)
-                        zipItem2=zip(predictionItem[0],predictionItem[1],packetDetail)
-                        self.updateEventSig.emit(zipItem2)
+                predictionItem,currentPacketDetail=Detection.prediction(algo=currentAlgo,classes=pred.x_train,threshold=alertThreshold)
+                packetDetail = []
+                if currentPacketDetail is not None and predictionItem is not None:
+                    for index,item in enumerate(currentPacketDetail):
+                        packetDetail.append(str(currentPacketDetail[index]).replace("'","").replace("[","").replace("]",""))
+                    zipItem=zip(predictionItem[0],predictionItem[1],packetDetail)
+                    self.predictionSig.emit(zipItem)
+                    zipItem2=zip(predictionItem[0],predictionItem[1],packetDetail)
+                    self.updateEventSig.emit(zipItem2)
             except Exception as e:
                 Logging.logException(str(e))
-
-    def notifyUser(self,trigger):
-        if trigger:
-            self.pause=False
-            Alert("Starting","Initialising the sniffer").generateDesktopNotification()
-        else:
-            self.pause=True
-            Alert("Pausing","Waiting process the remaining packet").generateDesktopNotification()
-
-    def stop(self):
-        self.is_running=False
-        try:
-            if self.loop.is_running():
-                self.loop.call_soon_threadsafe(self.loop.stop)
-                for task in asyncio.all_tasks():
-                    task.cancel()
-                    self.loop.run_until_complete(task)
-                    self.loop.stop()
-                self.loop=None
-        except Exception as e:
-            pass
-        self.terminate()
-
-
+        
 if __name__ == "__main__":
     app = QApplication([])
     window = IDS_Window()
