@@ -1,4 +1,4 @@
-# NIDS-with-ML
+# Sentinel
 INSTALLATION GUIDE
 =================================
 1. install the python
