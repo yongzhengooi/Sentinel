@@ -6,6 +6,8 @@ INSTALLATION GUIDE
 3. Reboot the system (if wireshark required)
 3. click on install in the folder
 4. start the application -double click on SENTINEL
+5. Download the dataset from the https://www.kaggle.com/datasets/solarmainframe/ids-intrusion-csv and paste inside the folder training/dataset
+6. Press the retrain data in the setting.
 
 App manual
 ==================================
