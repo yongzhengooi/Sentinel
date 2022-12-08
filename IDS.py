@@ -45,7 +45,7 @@ from lib.Logging import Logging
 from lib.Rule import Rule
 from lib.Export import Export
 from lib.DataPreprocess import Datapreprocess
-from ui.test import Ui_MainWindow
+from ui.design import Ui_MainWindow
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -62,6 +62,7 @@ class IDS_Window(QMainWindow):
         self.ui.setupUi(self)
         self.trigger=True
         #Initialize the rule 
+        self.setWindowTitle("SENTINEL")
         self.rule=rule_thread()
         self.ruleThread=QThread()
         self.ruleThread.started.connect(self.rule.run)
@@ -79,7 +80,7 @@ class IDS_Window(QMainWindow):
         self.slicer_value=-100
         self.Detection_range=0
         self.algoIndex=0
-        self.boot=0
+        self.boot=1
         self.initConfiguration()
 
         # get data for listview
@@ -114,7 +115,8 @@ class IDS_Window(QMainWindow):
         self.attackAX.set_xlabel("Attack Type")
         attacktype=["Benign","BruteForce","DDOS","Web based","Others"]
         attackData=[self.benign,self.bruteForce,self.ddos,self.webBase,self.others]
-        self.attackAX.bar(attacktype,attackData)
+        self.color=["Green","orange","red","blue","black"]
+        self.attackAX.bar(attacktype,attackData,color=self.color)
         self.attackCanvas=FigureCanvas(self.attackTypeFigure)
         self.proxy_widget = QGraphicsProxyWidget()
         self.proxy_widget.setWidget(self.attackCanvas)
@@ -130,6 +132,8 @@ class IDS_Window(QMainWindow):
         self.packetTypeFigure,self.packetAX=plt.subplots(figsize=(7.8,3.85))
         self.packetAX.set_title("Packets analysed from machine learning")
         packettype=["Benign","Malicious"]
+        if self.benign==0:
+            self.benign=1
         packetData=[self.benign,self.malicious]
         self.packetAX.pie(packetData,labels=packettype,autopct='%1.0f%%')
         self.packetCanvas=FigureCanvas(self.packetTypeFigure)
@@ -210,13 +214,16 @@ class IDS_Window(QMainWindow):
         self.ui.fileToExportButton.clicked.connect(self.getTargetDirectory)
         self.ui.export_button.clicked.connect(lambda:Thread(target=self.export).start())
         
+        #Startup
+        self.ui.starupBoot_comboBox.setCurrentIndex(self.boot)
+        self.ui.starupBoot_comboBox.currentIndexChanged.connect(self.updateBootComboBox)
         #Get data and search in model
         self.getData()
 
 ###INIT FUNCTION
     def initConfiguration(self):
         if not os.path.exists("miscellaneous\\configuration.txt"):
-            initString="slicer_value = -100\nDetection_range=0\nalgo=3\nboot=0"
+            initString="slicer_value = -100\nDetection_range=0\nalgo=3\nboot=1"
             with open("miscellaneous\\configuration.txt", "a") as file:
                     file.write(initString)
                     file.close()
@@ -305,43 +312,16 @@ class IDS_Window(QMainWindow):
         elif selectedPage == "Switch":
             if self.trigger:
                 Alert("Starting","Initialising the sniffer").generateDesktopNotification()
-                # self.thread[1] = sniffThread(parent=None)
-                # self.thread[2] = ruleProcessThread(parent=None)
-                # self.thread[1].pause=False
-                # if not self.thread[1].is_running:
                 self.predictThread.start()
                 self.ruleThread.start()
-                #     self.thread[2].start()
-
-                # self.thread[1].notifyUser(self.trigger)
-                # self.thread[1].sig.connect(self.updateLivePacket)
-
-                # self.thread[2].updateEventSig.connect(self.updateEvent)
-                # self.thread[2].predictionSig.connect(self.updateGraph)
-            
-                # self.thread[1].ruleSig.connect(self.updateRuleEvent)
-
-                # if not self.sniff.is_running:
-                #     self.threadpool.start(sniff)
-                #     self.thread[2] = ruleProcessThread(parent=None)
-                #     self.thread[2].start()
-                # self.sniff.ruleSignal.currentRuleSig.connect(self.updateLivePacket)
-                # self.sniff.ruleSignal.updateRuleEvent.connect(self.updateRuleEvent)
-                # self.thread[2].updateEventSig.connect(self.updateEvent)
-                # self.thread[2].predictionSig.connect(self.updateGraph)
-                
                 self.trigger = False
             else:
-                # self.thread[1].notifyUser(self.trigger)
-                # self.thread[1].pause=True
-                self.sniff.pause()
-                # self.thread[1].stop()
                 self.trigger = True
 ###DASHBOARD FUNCTIONS
     def updateGraph(self,item):
             type_bruteforce=["FTP-BruteForce","SSH-Bruteforce"]
             type_dos=[
-            # "DoS attacks-GoldenEye",
+            "DoS attacks-GoldenEye",
             "DoS attacks-Slowloris",
             "DoS attacks-SlowHTTPTest",
             "DoS attacks-Hulk"]
@@ -372,7 +352,7 @@ class IDS_Window(QMainWindow):
             self.attackAX.set_xlabel("Attack type")
             self.attackAX.set_ylabel("Detected packet")
             self.attackAX.set_title("Packet analysed from machine learning")
-            self.attackAX.bar(attackLabel,count)
+            self.attackAX.bar(attackLabel,count,color=self.color)
             self.attackCanvas.draw()
             self.attackCanvas.flush_events()
             
@@ -395,7 +375,7 @@ class IDS_Window(QMainWindow):
         try:
             type_bruteforce=["FTP-BruteForce","SSH-Bruteforce"]
             type_dos=[
-            # "DoS attacks-GoldenEye",
+            "DoS attacks-GoldenEye",
             "DoS attacks-Slowloris",
             "DoS attacks-SlowHTTPTest",
             "DoS attacks-Hulk"]
@@ -413,8 +393,10 @@ class IDS_Window(QMainWindow):
                         self.ui.currentEvent_textBrower.append(f"WebBased attempted: {label}  {predict}%")
                     elif label in type_others:
                         self.ui.currentEvent_textBrower.append(f"Others attempted: {label}  {predict}%")
-                    if label not in "Benign" and label not in "DoS attacks-GoldenEye":
-                        eventStr=f"{currentIP_Detail[4]},{label},Prediction,Probability: {predict} %,{currentIP_Detail[0]},{currentIP_Detail[1]},{currentIP_Detail[2]},{currentIP_Detail[3]}"
+                    if label not in "Benign":
+                        ipdate=currentIP_Detail[4][:11]
+                        ipTime=currentIP_Detail[4][11:]
+                        eventStr=f"{ipdate} {ipTime},{label},Prediction,Probability: {predict} %,{currentIP_Detail[0]},{currentIP_Detail[1]},{currentIP_Detail[2]},{currentIP_Detail[3]}"
                         self.eventList.append(eventStr)
                         self.eventModel.clear()
                         self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
@@ -436,7 +418,7 @@ class IDS_Window(QMainWindow):
         #data[3]=dstport
         #data[4]=classtype
         #data[5]=message
-        eventStr=f"{str(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))},{data[4]},Rules,{data[5]},{data[0]},{data[1]},{data[2]},{data[3]}"
+        eventStr=f"{str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))},{data[4]},Rules,{data[5]},{data[0]},{data[1]},{data[2]},{data[3]}"
         self.eventList.append(eventStr)
         self.eventModel.clear()
         self.eventModel.setHorizontalHeaderLabels(["TimeStamp","Event","Type","Detail","Src Source","Src Port","Dst Source","Dst Port"])
@@ -513,6 +495,11 @@ class IDS_Window(QMainWindow):
         global currentAlgo
         currentAlgo=self.ui.algorithms_comboBox.currentText()
 
+    def updateBootComboBox(self):
+        index=self.ui.starupBoot_comboBox.currentIndex()
+        self.changeVariableOnTxt("boot={}".format(self.boot),"boot={}".format(index))
+        self.starupOnBoot(int(index))
+
     def changeVariableOnTxt(self,ori,replace):
         with open("miscellaneous\\configuration.txt", "r") as file:
             data=file.read()
@@ -566,15 +553,21 @@ class IDS_Window(QMainWindow):
         retrain.overwriteAllModel()
         Alert("Successful generate the model","").generateDesktopNotification()
 
-    def starupOnBoot():
-        pth = os.path.dirname(os.path.realpath(__file__))
-        intendedScript="IDS.py"
-        address=os.join(pth,intendedScript)
-        key = reg.HKEY_CURRENT_USER
-        key_value = "Software\Microsoft\Windows\CurrentVersion\Run"
-        openkey = reg.OpenKey(key,key_value,0,reg.KEY_ALL_ACCESS)
-        reg.SetValueEx(openkey,"any_name",0,reg.REG_SZ,address)
-        reg.CloseKey(openkey)
+    def starupOnBoot(self,index):
+        try:
+            pth = os.path.dirname(os.path.realpath(__file__))
+            intendedScript="SENTINEL.bat"
+            address=os.path.join(pth,intendedScript)
+            key = reg.HKEY_CURRENT_USER
+            key_value = "Software\Microsoft\Windows\CurrentVersion\Run"
+            openkey = reg.OpenKey(key,key_value,0,reg.KEY_ALL_ACCESS)
+            if index ==0:
+                reg.SetValueEx(openkey,"SENTINEL",0,reg.REG_SZ,address)
+            else:
+                reg.DeleteValue(openkey,"SENTINEL")
+            reg.CloseKey(openkey)
+        except:
+            pass
 
 ###EXPORT FUNCTIONS
     def getTargetDirectory(self):
@@ -734,11 +727,11 @@ class rule_thread(QObject):
                 if packet.transport_layer == "TCP":
                     src_port = packet["TCP"].srcport
                     dst_port = packet["TCP"].dstport
+                    Rule.checkUserBanIP("TCP",src_ip,src_port,dst_ip,dst_port)
                     self.currentRuleSig.emit("[TCP] {}       \t{}\t-> {}\t{}".format(src_ip, src_port, dst_ip, dst_port))
                     if "segment_data" in dir(packet["TCP"]):
                         payload = packet["TCP"].segment_data
                         payload = str(payload).replace(":", " ")
-                        Rule.checkUserBanIP("TCP",src_ip,src_port,dst_ip,dst_port)
                         ruleTrigger=Rule("tcp", src_ip, src_port, dst_ip, dst_port).checkRules(
                             payload
                         )
@@ -780,7 +773,7 @@ class predict_thread(QObject):
                     zipItem2=zip(predictionItem[0],predictionItem[1],packetDetail)
                     self.updateEventSig.emit(zipItem2)
             except Exception as e:
-                Logging.logException(str(e))
+                pass
         
 if __name__ == "__main__":
     app = QApplication([])

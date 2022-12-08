@@ -101,9 +101,10 @@ class Rule:
                 
                 if re.search(detail,newRule):
                     # Get the rule, remove execessive quote
-                    # print(rule)
                     ruleDict = self.getRuleDict(rule)
-                    self.checkPayloadContent(ruleDict, payload)  
+                    detectRule=self.checkPayloadContent(ruleDict, payload)
+                    if detectRule is not None:
+                        return detectRule
         # except Exception as e:
         #     Logging.logException(str(e))
 
@@ -176,16 +177,6 @@ class Rule:
 
                 decodeContent=str(binascii.hexlify(bytes(re.escape(decodeContent),"utf8")),"utf8").replace(" ","")
                 decodePayload=str(binascii.hexlify(bytes(re.escape(decodePayload),"utf8")),"utf8").replace(" ","")
-                # if "flow" in ruleDict:
-                #     flow=ruleDict.get("flow")
-                #     if flow in decodeContent:
-                #         if i == 1:
-                #             multipleContentCheck[i-1]=True
-                #         else:
-                #             multipleContentCheck.append(True)
-                #     else:
-                #         multipleContentCheck.append(False)
-
                 if decodeContent in decodePayload and decodeContent != "":
                     if i == 1:
                         multipleContentCheck[i-1]=True
@@ -198,20 +189,34 @@ class Rule:
             else:
                 if "pcre" in ruleDict:
                     regex = ruleDict.get("pcre")
+                    escContent=re.compile(regex)
                     if re.search(r"[!@)(#?$%^&*.]",content):
-                        escContent=re.compile(regex)
                         escpayload=re.escape(modPayload)
-                        # decodeMatchingPayload=str(binascii.hexlify(bytes(str(escpayload),"utf8")),"utf8").replace(" ","")
-                        if re.search(escContent,escpayload):
-                            Alert(
-                                ruleDict.get("classtype"), ruleDict.get("msg")
-                            ).generateDesktopNotification()
-                            Logging.logInfo("payload :{} \n content {}".format(payload,content))
-                else:
-                    Alert(
+                    if re.search(escContent,escpayload):
+                        Alert(
                             ruleDict.get("classtype"), ruleDict.get("msg")
                         ).generateDesktopNotification()
-                    Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
+                        Alert(ruleDict.get("classtype"), ruleDict.get("msg")).sendEmail()
+                        Logging.logInfo("payload :{} \n content {}".format(payload,content))
+                else:
+                    previousRule=""
+                    strTxt=f"{ruleDict.get('classtype')},{ruleDict.get('msg')}"
+                    if not os.path.exists("miscellaneous\\alertLabel.txt"):
+                        with open("miscellaneous\\alertLabel.txt","w") as file:
+                            file.write("randomText")
+                            file.close()
+                    with open("miscellaneous\\alertLabel.txt","r") as file:
+                        previousRule=file.read()
+                        file.close
+                    if not re.search(previousRule,strTxt):
+                        Alert(
+                                ruleDict.get("classtype"), ruleDict.get("msg")
+                            ).generateDesktopNotification()
+                        Alert(ruleDict.get("classtype"),ruleDict.get("msg")).sendEmail()
+                        Logging.logInfo("payload :{} \n content {}".format(payload,oricont))
+                        with open("miscellaneous\\alertLabel.txt","w") as file:
+                            file.write(strTxt)
+                    #         file.close()
                     multipleContentCheck.clear()
                     return [self.src_ip,self.src_port,self.dst_ip,self.dst_port,ruleDict.get("classtype"), ruleDict.get("msg")]
 

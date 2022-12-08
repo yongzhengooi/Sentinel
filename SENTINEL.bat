@@ -1,10 +1,11 @@
 @echo off
+cd %~dp0
 echo "Initializing the SENTINEL IDS SYSTEM..."
 echo "This may take up to a minute to finish setup"
-start /B python IDS.py
-timeout 30 > nul
+start /b python IDS.py
+ping 127.0.0.1 -n 30 > nul
 echo "Activating machine Learning assist tool..."
-timeout 5 > nul
+ping 127.0.0.1 -n 5 > nul
 cd data
 for /f "skip=1" %%x in ('wmic os get localdatetime') do if not defined MyDate set MyDate=%%x
 for /f %%x in ('wmic path win32_localtime get /format:list ^| findstr "="') do set %%x

@@ -1,0 +1,4 @@
+slicer_value = -100
+Detection_range=0
+algo=2
+boot=0

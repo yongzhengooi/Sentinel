@@ -118,7 +118,6 @@ class Detection:
             df = pd.DataFrame(content)
             df.columns = df.iloc[0]
             toDropList = [
-                "timestamp",
                 "src_mac",
                 "dst_mac",
             ]
@@ -140,7 +139,8 @@ class Detection:
                 "src_ip",
                 "src_port",
                 "dst_ip",
-                "dst_port"
+                "dst_port",
+                "timestamp"
                 ]
             selectedDf = df[bestFeature]
             allpacket = []
@@ -169,7 +169,7 @@ class Detection:
                 allpacket.append(
                             [float(feature[i]) for i in range(0,11)]
                     )
-                ipPacket.append([feature[i] for i in range (11,15)])
+                ipPacket.append([feature[i] for i in range (11,16)])
             try: 
                 if allpacket is not None:
                     if len(allpacket) >1:
@@ -184,19 +184,23 @@ class Detection:
                             newProb.append(round(max(item) * 100, 2))
                         checkingType = zip(encoded.inverse_transform(prediction), newProb)
 
+                        #Prevent alert trigger multiple time time
+                        previouslabel ="fh"
                         currentDDOS_count=0
                         for label, probability in checkingType:
-                            if float(probability) >= threshold:
-                                if label in type_bruteforce:
-                                    Alert(
-                                        "Bruteforce type attemped",
-                                        # "Source: {} Dst: {} Port: {}".format(src_ip, dst_ip, dst_port),
-                                        "{} Detected \n Probability of predicted attack :{}".format(
-                                            label, probability
-                                        ),
-                                    ).generateDesktopNotification()
-                                elif label in type_dos or label in type_ddos:
-                                    if currentDDOS_count > 5 or currentDDOS_count==0:
+                            if previouslabel!=label:
+                                if float(probability) >= threshold:
+                                    if label in type_bruteforce:
+                                        Alert(
+                                            "Bruteforce type attemped",
+                                            # "Source: {} Dst: {} Port: {}".format(src_ip, dst_ip, dst_port),
+                                            "{} Detected \n Probability of predicted attack :{}".format(
+                                                label, probability
+                                            ),
+                                        ).generateDesktopNotification()
+                                        Alert("Attack type bruteforce detected",f"{label} \n Probability: {probability}").sendEmail()
+                                        previouslabel=label
+                                    elif label in type_dos or label in type_ddos:
                                         Alert(
                                             "Dos/DDOS type attemped",
                                             # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
@@ -204,47 +208,35 @@ class Detection:
                                                 label, probability
                                             ),
                                         ).generateDesktopNotification()
-                                    currentDDOS_count+=1
-                                elif label in type_webBased:
-                                    Alert(
-                                        "Web attack type attemped",
-                                        # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
-                                        "{} Detected \n Probability of predicted attack :{}".format(
-                                            label, probability
-                                        ),
-                                    ).generateDesktopNotification()
-                                elif label in type_others:
-                                    Alert(
-                                        "Type others attemped",
-                                        # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
-                                        "{} Detected \n Probability of predicted attack :{}".format(
-                                            label, probability
-                                        ),
-                                    ).generateDesktopNotification()
+                                        Alert("Attack type DDOS detected",f"{label} \n Probability: {probability}").sendEmail()
+                                        previouslabel=label
+                                        if currentDDOS_count >3:
+                                            Alert(
+                                                "Heavy traffics of ddos detected", "Please consider mitigrate the traffic"
+                                            ).generateDesktopNotification()
+                                            currentDDOS_count=0
+                                            Alert("Heavy ddos detected","Please take action to mitigrate the traffic").sendEmail()
+                                    elif label in type_webBased:
+                                        Alert(
+                                            "Web attack type attemped",
+                                            # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
+                                            "{} Detected \n Probability of predicted attack :{}".format(
+                                                label, probability
+                                            ),
+                                        ).generateDesktopNotification()
+                                        Alert("Attack type web based detected",f"{label} \n Probability: {probability}").sendEmail()
+                                        previouslabel=label
+                                    elif label in type_others:
+                                        Alert(
+                                            "Type others attemped",
+                                            # "Source: {} Dst: {}Port: {}".format(src_ip, dst_ip, dst_port),
+                                            "{} Detected \n Probability of predicted attack :{}".format(
+                                                label, probability
+                                            ),
+                                        ).generateDesktopNotification()
+                                        Alert("Attack type others detected",f"{label} \n Probability: {probability}").sendEmail()
+                                        previouslabel=label
                         return [encoded.inverse_transform(prediction),newProb],ipPacket
             except Exception as e:
                 Logging.logException(str(e))
-
-
-# class PayloadCollector(NFPlugin):
-#     @staticmethod
-#     def _extend_flow_payload(packet, flow):
-#         if packet.payload_size > 0:
-#             payload = packet.ip_packet[-packet.payload_size :]
-#             flow.udps.payload.extend(payload)
-
-#     def on_init(self, packet, flow):
-#         flow.udps.payload = bytearray()
-#         self._extend_flow_payload(packet, flow)
-
-#     def on_update(self, packet, flow):
-#         self._extend_flow_payload(packet, flow)
-
-
-p = "7C 30 44 20 30 41 7C 55 73 65 72 2D 41 67 65 6E 74 7C 33 41 7C 20 4A 61 76 61 2F"
-p3 = "137A18"
-p2 = "2E 63 6C 61 73 73 0D 0A 75 73 65 72 2D 61 67 65 6E 74 3A 20 6A 61 76 61 2F"
-# Rule("tcp", "190.144.160", "12",str(scapy.get_if_addr(scapy.conf.iface)) , "79").checkRules(p.replace(" ",""))
-# Rule("tcp", str(scapy.get_if_addr(scapy.conf.iface)), "2589","190.144.160" , "80").checkRules(p2)
-# Rule("tcp", "12.41.211.1","2589","127.0.0.1" , "25").checkRules(p2)
     

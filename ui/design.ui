@@ -110,17 +110,17 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>4</number>
         </property>
         <widget class="QWidget" name="dashboard_page">
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <item>
            <layout class="QGridLayout" name="gridLayout">
             <item row="3" column="0">
-             <widget class="QGraphicsView" name="attackSource_graph"/>
+             <widget class="QGraphicsView" name="attackType_graph"/>
             </item>
             <item row="1" column="1">
-             <widget class="QGraphicsView" name="attackType_graph"/>
+             <widget class="QGraphicsView" name="packetType_graph"/>
             </item>
             <item row="1" column="0">
              <widget class="QTextBrowser" name="livePacket_textBrowser"/>
@@ -138,7 +138,7 @@
             <item row="0" column="1">
              <widget class="QLabel" name="label_2">
               <property name="text">
-               <string>Type of attack</string>
+               <string>Packet Type</string>
               </property>
              </widget>
             </item>
@@ -152,7 +152,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="label_3">
               <property name="text">
-               <string>Attack source</string>
+               <string>Attack Type</string>
               </property>
              </widget>
             </item>
@@ -164,6 +164,9 @@
          <layout class="QHBoxLayout" name="horizontalLayout_4">
           <item>
            <layout class="QGridLayout" name="gridLayout_2">
+            <item row="1" column="1">
+             <widget class="QDateEdit" name="searchDateUntil"/>
+            </item>
             <item row="2" column="2">
              <widget class="QPushButton" name="searchByStatus_button">
               <property name="text">
@@ -178,30 +181,10 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0" colspan="2">
-             <widget class="QPlainTextEdit" name="search_status_editText">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>30</height>
-               </size>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="0">
              <widget class="QLabel" name="label_5">
               <property name="text">
                <string>Search by:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0" colspan="2">
-             <widget class="QPlainTextEdit" name="search_ip_editTExt">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>30</height>
-               </size>
               </property>
              </widget>
             </item>
@@ -212,14 +195,31 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="0" colspan="3">
-             <widget class="QTextBrowser" name="display_search_textBrowser"/>
-            </item>
             <item row="1" column="0">
              <widget class="QDateEdit" name="searchDateFrom"/>
             </item>
-            <item row="1" column="1">
-             <widget class="QDateEdit" name="searchDateUntil"/>
+            <item row="2" column="0" colspan="2">
+             <widget class="QLineEdit" name="search_status_editText">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="QLineEdit" name="search_ip_editTExt">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0" colspan="3">
+             <widget class="QTableView" name="eventTableView"/>
             </item>
            </layout>
           </item>
@@ -241,13 +241,49 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="3">
-               <widget class="QPlainTextEdit" name="add_srcIP_editText">
+              <item row="0" column="3" alignment="Qt::AlignHCenter">
+               <widget class="QLabel" name="label_7">
                 <property name="maximumSize">
                  <size>
                   <width>16777215</width>
-                  <height>30</height>
+                  <height>20</height>
                  </size>
+                </property>
+                <property name="text">
+                 <string>Rules add</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="1">
+               <widget class="QLabel" name="label_6">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Rules</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="3">
+               <widget class="QPushButton" name="addRules_button">
+                <property name="text">
+                 <string>Add</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>Port  :</string>
                 </property>
                </widget>
               </item>
@@ -277,20 +313,26 @@
                 </item>
                </widget>
               </item>
-              <item row="3" column="2" alignment="Qt::AlignRight">
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>Port  :</string>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="searchRulesIP_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
                 </property>
-               </widget>
-              </item>
-              <item row="3" column="3">
-               <widget class="QPlainTextEdit" name="add_srcPort_editText">
                 <property name="maximumSize">
                  <size>
                   <width>16777215</width>
                   <height>30</height>
                  </size>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="label_13">
+                <property name="text">
+                 <string>Search by:</string>
                 </property>
                </widget>
               </item>
@@ -298,19 +340,6 @@
                <widget class="QLabel" name="label_9">
                 <property name="text">
                  <string>Src IP  :</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="0" colspan="4">
-               <widget class="QListView" name="rules_listView"/>
-              </item>
-              <item row="5" column="3">
-               <widget class="QPlainTextEdit" name="add_dstPort_editText">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>30</height>
-                 </size>
                 </property>
                </widget>
               </item>
@@ -327,23 +356,6 @@
                 </property>
                </spacer>
               </item>
-              <item row="4" column="2" alignment="Qt::AlignRight">
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>Dst IP  :</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="3">
-               <widget class="QPlainTextEdit" name="add_dstIP_editText">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>30</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
               <item row="8" column="2">
                <spacer name="horizontalSpacer">
                 <property name="orientation">
@@ -357,69 +369,10 @@
                 </property>
                </spacer>
               </item>
-              <item row="7" column="3">
-               <widget class="QPushButton" name="addRules_button">
+              <item row="4" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_11">
                 <property name="text">
-                 <string>Add</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="1">
-               <widget class="QLabel" name="label_6">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Rules</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="3" alignment="Qt::AlignHCenter">
-               <widget class="QLabel" name="label_7">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Rules add</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="label_13">
-                <property name="text">
-                 <string>Search by:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QPlainTextEdit" name="searchRulesIP_editText">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>30</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QPlainTextEdit" name="searchRulesPort_editText">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>30</height>
-                 </size>
+                 <string>Dst IP  :</string>
                 </property>
                </widget>
               </item>
@@ -434,6 +387,89 @@
                <widget class="QLabel" name="label_15">
                 <property name="text">
                  <string>Port  :</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0" colspan="4">
+               <widget class="QTableView" name="rules_tableView"/>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="searchRulesPort_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="3">
+               <widget class="QLineEdit" name="add_srcIP_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="3">
+               <widget class="QLineEdit" name="add_srcPort_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="3">
+               <widget class="QLineEdit" name="add_dstIP_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="3">
+               <widget class="QLineEdit" name="add_dstPort_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
                 </property>
                </widget>
               </item>
@@ -592,16 +628,6 @@
               </property>
              </widget>
             </item>
-            <item row="10" column="1" colspan="2">
-             <widget class="QListView" name="email_listView">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>200</height>
-               </size>
-              </property>
-             </widget>
-            </item>
             <item row="10" column="0" alignment="Qt::AlignTop">
              <widget class="QLabel" name="label_20">
               <property name="maximumSize">
@@ -656,16 +682,6 @@
              <widget class="QLabel" name="label_21">
               <property name="text">
                <string>Add email recipient :</string>
-              </property>
-             </widget>
-            </item>
-            <item row="12" column="1">
-             <widget class="QPlainTextEdit" name="email_editText">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
               </property>
              </widget>
             </item>
@@ -774,6 +790,25 @@
               </property>
              </spacer>
             </item>
+            <item row="10" column="1" colspan="2">
+             <widget class="QTableView" name="email_tableView"/>
+            </item>
+            <item row="12" column="1">
+             <widget class="QLineEdit" name="email_editText">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
          </layout>
@@ -782,19 +817,6 @@
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
            <layout class="QGridLayout" name="gridLayout_5">
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_29">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Export format</string>
-              </property>
-             </widget>
-            </item>
             <item row="2" column="1">
              <widget class="QToolButton" name="openFile_button">
               <property name="text">
@@ -815,13 +837,23 @@
               </property>
              </spacer>
             </item>
-            <item row="2" column="0">
-             <widget class="QPlainTextEdit" name="fileLocation_address_editText">
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_29">
               <property name="maximumSize">
                <size>
                 <width>16777215</width>
                 <height>20</height>
                </size>
+              </property>
+              <property name="text">
+               <string>Export format</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0" colspan="2">
+             <widget class="QPushButton" name="export_button">
+              <property name="text">
+               <string>Export</string>
               </property>
              </widget>
             </item>
@@ -835,13 +867,6 @@
               </property>
               <property name="text">
                <string>Export location:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="0" colspan="2">
-             <widget class="QPushButton" name="export_button">
-              <property name="text">
-               <string>Export</string>
               </property>
              </widget>
             </item>
@@ -881,7 +906,23 @@
               </property>
              </spacer>
             </item>
-            <item row="7" column="0">
+            <item row="2" column="0">
+             <widget class="QLineEdit" name="fileLocation_address_editText">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0" colspan="2">
              <widget class="QProgressBar" name="exportProgress">
               <property name="value">
                <number>0</number>

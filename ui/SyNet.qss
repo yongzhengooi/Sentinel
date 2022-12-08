@@ -38,7 +38,7 @@ QLabel
 {
 	background-color: transparent;
 	color: #c2c7d5;
-	font-size: 13px;
+	font-size: 16px;
 
 }
 
@@ -131,11 +131,8 @@ QCheckBox::indicator:disabled
 /*-----QLineEdit-----*/
 QLineEdit
 {
-	background-color: #c2c7d5;
-	color: #FFFFFF;
 	font-weight: bold;
-	border: none;
-	border-radius: 2px;
+	border: 2px solid #525251;
 	padding: 3px;
 
 }
@@ -171,7 +168,7 @@ QListView::item
 QListView::item:selected
 {
 	color: #000;
-	background-color: #ff3333;
+	background-color: #857a7a;
 
 }
 
@@ -286,7 +283,6 @@ QTableView::item:hover
 
 QTableView::item:selected 
 {
-	background-color: #ff3333;
     color: #000;
 
 }
@@ -434,4 +430,8 @@ QScrollBar::sub-page:vertical
     height: 0px;
     background-color: transparent;
 
+}
+QTextBrowser{
+	font-size: 23px;
+	color:#32CD32;
 }

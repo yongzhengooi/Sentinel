@@ -1,6 +1,7 @@
 import smtplib
 import os
 from lib.Logging import *
+# from Logging import *
 from email.message import EmailMessage
 from dotenv import load_dotenv
 _=load_dotenv("var.env")
@@ -22,8 +23,6 @@ class Alert:
             file.close()
             return emailArray
 
-    # def generateDesktopNotification(self,thread=False,length=5):
-    #     win10toast.ToastNotifier().show_toast(self.msg_title,self.msg_content,self.imgIcon,length,threaded=thread)
     def generateDesktopNotification(self):
         toast = Notification(app_id="Sentinel",
                      title=self.msg_title,

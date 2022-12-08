@@ -1,0 +1,1152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>713</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QListWidget" name="menu_listView">
+        <property name="maximumSize">
+         <size>
+          <width>250</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>16</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+          <strikeout>false</strikeout>
+         </font>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>45</width>
+          <height>45</height>
+         </size>
+        </property>
+        <property name="layoutMode">
+         <enum>QListView::SinglePass</enum>
+        </property>
+        <property name="spacing">
+         <number>12</number>
+        </property>
+        <property name="viewMode">
+         <enum>QListView::ListMode</enum>
+        </property>
+        <property name="uniformItemSizes">
+         <bool>false</bool>
+        </property>
+        <item>
+         <property name="text">
+          <string>Dashboard</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/dashboard.png</normaloff>resources/dashboard.png</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Event</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/exclamation-mark-in-a-circle.png</normaloff>resources/exclamation-mark-in-a-circle.png</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Rules</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/dna.png</normaloff>resources/dna.png</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Setting</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/setting-lines.png</normaloff>resources/setting-lines.png</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Export</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/export.png</normaloff>resources/export.png</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Switch</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/change-power-options.png</normaloff>resources/change-power-options.png</iconset>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QStackedWidget" name="stackedWidget">
+        <property name="currentIndex">
+         <number>2</number>
+        </property>
+        <widget class="QWidget" name="dashboard_page">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <layout class="QGridLayout" name="gridLayout">
+            <item row="3" column="1">
+             <widget class="QTextBrowser" name="currentEvent_textBrower"/>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Attack Type</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>Currrent event</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>Packet Type</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QTextBrowser" name="livePacket_textBrowser"/>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>Live packet</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QFrame" name="attack_frame">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777214</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QFrame" name="packetType_frame">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="event_page">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="text">
+               <string>Search by:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0" colspan="2">
+             <widget class="QLineEdit" name="eventSearch1_editText">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0" colspan="2">
+             <widget class="QTableView" name="eventTableView"/>
+            </item>
+            <item row="1" column="0" colspan="2">
+             <widget class="QComboBox" name="eventSearch1_comboBox">
+              <item>
+               <property name="text">
+                <string>Any</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Timestamp</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Event</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Type</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Detail</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Src Source</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Src Port</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Dst Source</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Dst Port</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="QComboBox" name="comboBox_2">
+              <item>
+               <property name="text">
+                <string>Any</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Timestamp</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Event</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Type</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Detail</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Src Source</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Src Port</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Dst Source</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Dst Port</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="rules_page">
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <item>
+             <layout class="QGridLayout" name="gridLayout_3">
+              <property name="verticalSpacing">
+               <number>0</number>
+              </property>
+              <item row="1" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string>Type  :</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="3" alignment="Qt::AlignHCenter">
+               <widget class="QLabel" name="label_7">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Rules add</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="1">
+               <widget class="QLabel" name="label_6">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Rules</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="3">
+               <widget class="QPushButton" name="addRules_button">
+                <property name="text">
+                 <string>Add</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>Port  :</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_12">
+                <property name="text">
+                 <string>Port  :</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="3">
+               <widget class="QComboBox" name="packetType_comboBox">
+                <item>
+                 <property name="text">
+                  <string>TCP</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>UDP</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>ICMP</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="label_13">
+                <property name="text">
+                 <string>Search by:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_9">
+                <property name="text">
+                 <string>Src IP  :</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="2">
+               <spacer name="verticalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>10</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="8" column="2">
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="4" column="2" alignment="Qt::AlignRight">
+               <widget class="QLabel" name="label_11">
+                <property name="text">
+                 <string>Dst IP  :</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0" colspan="4">
+               <widget class="QTableView" name="rules_tableView"/>
+              </item>
+              <item row="2" column="3">
+               <widget class="QLineEdit" name="add_srcIP_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="3">
+               <widget class="QLineEdit" name="add_srcPort_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="3">
+               <widget class="QLineEdit" name="add_dstIP_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="3">
+               <widget class="QLineEdit" name="add_dstPort_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="searchRulesIP_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <widget class="QLineEdit" name="searchRulesPort_editText">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>20</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QComboBox" name="ruleSearch1_comboBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Any</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Type</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Source IP</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Source Port</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Destination IP</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Destination Port</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QComboBox" name="ruleSearch2_comboBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Any</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Type</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Source IP</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Source Port</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Destination IP</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Destination Port</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="setting_page">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="18" column="1">
+             <widget class="QComboBox" name="starupBoot_comboBox">
+              <item>
+               <property name="text">
+                <string>Yes</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>No</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="18" column="0">
+             <widget class="QLabel" name="label_24">
+              <property name="text">
+               <string>Startup on boot :</string>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="0">
+             <widget class="QLabel" name="label_26">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+                <underline>true</underline>
+               </font>
+              </property>
+              <property name="text">
+               <string>Miscellaneous</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2" alignment="Qt::AlignRight|Qt::AlignTop">
+             <widget class="QLabel" name="label_19">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Strict</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_22">
+              <property name="maximumSize">
+               <size>
+                <width>200</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Detection range :</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
+             <widget class="QRadioButton" name="detection_rangeOnly_radioButton">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Host only</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0">
+             <widget class="QLabel" name="label_25">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+                <underline>true</underline>
+               </font>
+              </property>
+              <property name="text">
+               <string>Alert configuration</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
+             <widget class="QLabel" name="label_18">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string> Medium                                             </string>
+              </property>
+             </widget>
+            </item>
+            <item row="12" column="0">
+             <widget class="QLabel" name="label_21">
+              <property name="text">
+               <string>Add email recipient :</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <spacer name="horizontalSpacer_8">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="3" column="0" alignment="Qt::AlignLeft|Qt::AlignTop">
+             <widget class="QLabel" name="label_17">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Low</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0" colspan="3" alignment="Qt::AlignTop">
+             <widget class="QSlider" name="detectionLevel_slicer">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" alignment="Qt::AlignTop">
+             <widget class="QLabel" name="label_16">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Detection level</string>
+              </property>
+             </widget>
+            </item>
+            <item row="13" column="0">
+             <spacer name="horizontalSpacer_9">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="11" column="0">
+             <spacer name="horizontalSpacer_7">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="16" column="0">
+             <widget class="QLabel" name="label_23">
+              <property name="text">
+               <string>Machine Learning Algorithms :</string>
+              </property>
+             </widget>
+            </item>
+            <item row="16" column="1">
+             <widget class="QComboBox" name="algorithms_comboBox"/>
+            </item>
+            <item row="12" column="2">
+             <widget class="QPushButton" name="addEmail_button">
+              <property name="text">
+               <string>Add</string>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0" alignment="Qt::AlignTop">
+             <widget class="QLabel" name="label_20">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Alert email to</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
+             <widget class="QRadioButton" name="detection_entireNetwork_radioButton">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Entire Network</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="0">
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="0" column="0" alignment="Qt::AlignTop">
+             <widget class="QLabel" name="label_27">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+                <underline>true</underline>
+               </font>
+              </property>
+              <property name="text">
+               <string>Detection confguration</string>
+              </property>
+             </widget>
+            </item>
+            <item row="19" column="0" colspan="2">
+             <spacer name="verticalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>200</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="10" column="1" colspan="2">
+             <widget class="QTableView" name="email_tableView"/>
+            </item>
+            <item row="12" column="1">
+             <widget class="QLineEdit" name="email_editText">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="17" column="0">
+             <widget class="QLabel" name="label_31">
+              <property name="text">
+               <string>Retrain all data model</string>
+              </property>
+             </widget>
+            </item>
+            <item row="17" column="1">
+             <widget class="QPushButton" name="retrainData_button">
+              <property name="text">
+               <string>Retrain data</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="export_page">
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <item>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_30">
+              <property name="text">
+               <string>File to export</string>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="0" colspan="2">
+             <widget class="QPushButton" name="export_button">
+              <property name="text">
+               <string>Export</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_29">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Export format</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0">
+             <spacer name="horizontalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_28">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Export location:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QToolButton" name="openFile_button">
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="0">
+             <spacer name="horizontalSpacer_4">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="6" column="0">
+             <widget class="QComboBox" name="exportFormat_comboBox">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLineEdit" name="fileLocation_address_editText">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0" colspan="2">
+             <widget class="QProgressBar" name="exportProgress">
+              <property name="value">
+               <number>0</number>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0">
+             <spacer name="verticalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLineEdit" name="targetFile_editText">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QToolButton" name="fileToExportButton">
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

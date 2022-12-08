@@ -1,25 +1,24 @@
-
-from codecs import ignore_errors, latin_1_decode
-from enum import unique
-from re import S
-from statistics import mean
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_selection import f_regression
 from sklearn.feature_selection import chi2
 from sklearn.feature_selection import SelectKBest
-import matplotlib
 import os
 
 
 class Datapreprocess:
     def __init__(self, data):
-        self.readData=pd.read_csv(data)
+        self.readData=self.readCurrentCsv(data)
         self.encodeData = ""
         self.currentAvailableLabel = ""
         self.extractFeatureDf=""
         self.bestFeature=""
+
+    def readCurrentCsv(self,data):
+        fileData=pd.read_csv(data,chunksize=10000)
+        df=pd.concat(fileData)
+        return df
 
     def getLabelType(self):
         df = pd.DataFrame(self.readData)
@@ -81,7 +80,7 @@ class Datapreprocess:
             print(label)
             print(df.loc[df["Label"].isin([label])].shape)
 
-    def sampleCleanEachLabelEqualy(self):
+    def sampleCleanEachLabelEqualy(self,percentage=0.2):
         self.datacleaning()
         # self.encodeFeature()
         df = pd.DataFrame(self.readData)
@@ -97,10 +96,11 @@ class Datapreprocess:
         print("start undersampling {}".format(self.currentAvailableLabel))
         for label in self.currentAvailableLabel:
                 if label in type_bruteforce:
-                    benignRow=df.loc[df["Label"].isin(["Benign"])].shape[0]
                     labelRow = df.loc[df["Label"].isin([label])].shape[0]
-                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*0.2))
-                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*0.2))
+                    percentage = 1 if labelRow < 10000 else percentage
+                    if labelRow >100000: percentage = 0.02 
+                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*percentage))
+                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*percentage))
                     print("found {} size {}".format(label,labelRow))
                     currentDf=pd.concat([newData,currentRow],axis=0).drop_duplicates()
                     currentDf.drop(currentDf.filter(regex="Unname"),axis=1, inplace=True)
@@ -115,10 +115,11 @@ class Datapreprocess:
                         pd.DataFrame(newDataframe).to_csv("training\\cleanedData\\bruteforce.csv",index=False)
                     continue        
                 elif label in type_dos or label in type_ddos:
-                    benignRow=df.loc[df["Label"].isin(["Benign"])].shape[0]
                     labelRow = df.loc[df["Label"].isin([label])].shape[0]
-                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*0.2))
-                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*0.2))
+                    percentage = 1 if labelRow < 10000 else percentage
+                    if labelRow >100000: percentage = 0.02 
+                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*percentage))
+                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*percentage))
                     print("found {} size {}".format(label,labelRow))
                     currentDf=pd.concat([newData,currentRow],axis=0,ignore_index=True,join='inner').drop_duplicates()
                     currentDf.drop(currentDf.filter(regex="Unname"),axis=1, inplace=True)
@@ -133,10 +134,9 @@ class Datapreprocess:
                         pd.DataFrame(newDataframe).to_csv("training\\cleanedData\\ddos.csv",index=False) 
                     continue  
                 elif label in type_webBased:
-                    benignRow=df.loc[df["Label"].isin(["Benign"])].shape[0]
                     labelRow = df.loc[df["Label"].isin([label])].shape[0]
-                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*0.2))
-                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*0.2))
+                    newData=df.loc[df["Label"].isin(["Benign"])].sample(labelRow)
+                    currentRow=df.loc[df["Label"].isin([label])].sample(labelRow)
                     print("found {} size {}".format(label,labelRow))
                     currentDf=pd.concat([newData,currentRow],axis=0,ignore_index=True,join='inner')
                     currentDf.drop(currentDf.filter(regex="Unname"),axis=1, inplace=True)
@@ -151,10 +151,11 @@ class Datapreprocess:
                         pd.DataFrame(newDataframe).to_csv("training\\cleanedData\\webbase.csv",index=False) 
                     continue  
                 elif label in type_others:
-                    benignRow=df.loc[df["Label"].isin(["Benign"])].shape[0]
                     labelRow = df.loc[df["Label"].isin([label])].shape[0]
-                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*0.2))
-                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*0.2))
+                    percentage = 1 if labelRow < 10000 else percentage
+                    if labelRow >100000: percentage = 0.02
+                    newData=df.loc[df["Label"].isin(["Benign"])].sample(round(labelRow*percentage))
+                    currentRow=df.loc[df["Label"].isin([label])].sample(round(labelRow*percentage))
                     currentDf=pd.concat([newData,currentRow],axis=0).drop_duplicates()
                     currentDf.drop(currentDf.filter(regex="Unname"),axis=1, inplace=True)
                     print("found {} size {}".format(label,labelRow))
@@ -168,9 +169,7 @@ class Datapreprocess:
                         newDataframe.drop(newDataframe.filter(regex="Unname"),axis=1, inplace=True)
                         pd.DataFrame(newDataframe).to_csv("training\\cleanedData\\others.csv",index=False) 
                     continue  
-        print("undersampling Done {}".format(self.currentAvailableLabel))
-            # except:
-            #     pass
+        print("undersampling Done {} \n".format(self.currentAvailableLabel))
 
 
 # for dirname, _, filenames in os.walk("training\\dataset"):
@@ -178,6 +177,5 @@ class Datapreprocess:
 #         pds=[]
 #         if filename.endswith('.csv'):
 #             pds = os.path.join(dirname, filename)
-#             Datapreprocess(pds).sampleCleanEachLabelEqualy()
-# Datapreprocess("training\\dataset\\02-14-2018.csv").sampleCleanEachLabelEqualy()
+#             Datapreprocess(pds).sampleCleanEachLabelEqualy(percentage=0.3)
 # print(Datapreprocess("training\\cleanedData\\combined.csv").getBestFeature(11))

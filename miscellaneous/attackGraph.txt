@@ -1,0 +1,6 @@
+Benign = 0 
+Malicious = 0 
+BruteForce = 0 
+DDOS = 0 
+Webbase = 0 
+Others = 0
